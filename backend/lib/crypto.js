@@ -39,8 +39,18 @@ function decrypt(payload) {
   const encrypted = buf.subarray(28);
   const decipher = crypto.createDecipheriv(ALGO, KEY, iv);
   decipher.setAuthTag(tag);
-  const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
-  return decrypted.toString('utf8');
+  try {
+    const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
+    return decrypted.toString('utf8');
+  } catch {
+    // This means backend/data/.key doesn't match whatever encrypted this
+    // value -- almost always because the .key file and devices.json got
+    // separated (one replaced/regenerated without the other). The original
+    // secret can't be recovered without the original key; the device will
+    // need its credential re-entered, or restored from a backup export
+    // made before the mismatch happened.
+    throw new Error('Could not decrypt stored credential -- data/.key does not match the key this value was encrypted with');
+  }
 }
 
 module.exports = { encrypt, decrypt, encryptWithPassphrase, decryptWithPassphrase };

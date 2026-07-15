@@ -4,6 +4,16 @@ const path = require('path');
 const http = require('http');
 const { WebSocketServer } = require('ws');
 
+// Defense in depth: an uncaught error in one request (e.g. a corrupted
+// stored credential) should never take down monitoring for the whole
+// fleet. Log it and keep running rather than crashing the process.
+process.on('unhandledRejection', (err) => {
+  console.error('[server] Unhandled promise rejection (server is still running):', err);
+});
+process.on('uncaughtException', (err) => {
+  console.error('[server] Uncaught exception (server is still running):', err);
+});
+
 const devicesRouter = require('./routes/devices');
 const backupRouter = require('./routes/backup');
 const groupsRouter = require('./routes/groups');

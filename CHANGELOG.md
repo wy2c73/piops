@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.2.1
+
+- Fixed a bug where a device with an undecryptable stored credential (e.g.
+  `backend/data/.key` and `backend/data/devices.json` getting out of sync)
+  could crash the *entire* server, taking down monitoring for every device.
+  The `/test`, `/services`, `/ports`, and `/refresh` endpoints now handle
+  this cleanly and return a clear error instead.
+- Added process-level safety nets (`unhandledRejection`/`uncaughtException`
+  handlers) so an unexpected error anywhere else can't silently kill the
+  whole process either
+- Clearer error message when a stored credential can't be decrypted,
+  explaining the likely cause and that the device will need its
+  credential re-entered (or restored from a backup export made before
+  the mismatch)
+
 ## 1.2.0
 
 - Fixed the version number not showing in the top bar (added error logging

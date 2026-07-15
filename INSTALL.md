@@ -164,6 +164,8 @@ portable, passphrase-protected way to do it.
   but the server refused to run a command &mdash; check the account's login
   shell (`getent passwd <user>` on the monitored device) isn't `nologin`,
   and that there's no `ForceCommand`/forced-command key restriction.
+- **"Could not decrypt stored credential" / `EADDRINUSE`**: see the
+  Troubleshooting section in the main [README.md](README.md).
 
 See the main [README.md](README.md) for architecture details, security
 notes, and the Windows/PuTTY/WinSCP integration guide.

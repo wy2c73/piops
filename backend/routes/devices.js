@@ -23,14 +23,14 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ error: 'name, host, username, authType and secret are required' });
   }
   const device = store.create(req.body);
-  poller.refreshDevice(device.id); // kick off an immediate check, don't block the response
+  poller.refreshDevice(device.id).catch((err) => console.error(`[devices] background refresh failed for ${device.id}:`, err.message)); // kick off an immediate check, don't block the response
   res.status(201).json(device);
 });
 
 router.put('/:id', (req, res) => {
   const device = store.update(req.params.id, req.body);
   if (!device) return res.status(404).json({ error: 'Device not found' });
-  poller.refreshDevice(device.id);
+  poller.refreshDevice(device.id).catch((err) => console.error(`[devices] background refresh failed for ${device.id}:`, err.message));
   res.json(device);
 });
 
@@ -41,9 +41,9 @@ router.delete('/:id', (req, res) => {
 });
 
 router.post('/:id/test', async (req, res) => {
-  const device = store.getWithSecret(req.params.id);
-  if (!device) return res.status(404).json({ error: 'Device not found' });
   try {
+    const device = store.getWithSecret(req.params.id);
+    if (!device) return res.status(404).json({ error: 'Device not found' });
     await testConnection(device);
     res.json({ ok: true });
   } catch (err) {
@@ -54,14 +54,18 @@ router.post('/:id/test', async (req, res) => {
 router.post('/:id/refresh', async (req, res) => {
   const device = store.get(req.params.id);
   if (!device) return res.status(404).json({ error: 'Device not found' });
-  const stats = await poller.refreshDevice(device.id);
-  res.json(stats);
+  try {
+    const stats = await poller.refreshDevice(device.id);
+    res.json(stats);
+  } catch (err) {
+    res.status(502).json({ error: err.message });
+  }
 });
 
 router.get('/:id/services', async (req, res) => {
-  const device = store.getWithSecret(req.params.id);
-  if (!device) return res.status(404).json({ error: 'Device not found' });
   try {
+    const device = store.getWithSecret(req.params.id);
+    if (!device) return res.status(404).json({ error: 'Device not found' });
     const services = await listServices(device);
     res.json(services);
   } catch (err) {
@@ -70,9 +74,9 @@ router.get('/:id/services', async (req, res) => {
 });
 
 router.get('/:id/ports', async (req, res) => {
-  const device = store.getWithSecret(req.params.id);
-  if (!device) return res.status(404).json({ error: 'Device not found' });
   try {
+    const device = store.getWithSecret(req.params.id);
+    if (!device) return res.status(404).json({ error: 'Device not found' });
     const ports = await listPorts(device);
     res.json(ports);
   } catch (err) {

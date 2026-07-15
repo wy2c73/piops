@@ -132,6 +132,29 @@ edit the path in `putty-protocol-handler.vbs` if yours is elsewhere.
 The current version is shown next to the dashboard's name in the top bar and
 via `GET /api/version`. See [CHANGELOG.md](CHANGELOG.md) for release history.
 
+## Troubleshooting
+
+**`EADDRINUSE: address already in use 0.0.0.0:3000`** &mdash; something's
+already listening on port 3000, most often a previous `node server.js`
+that wasn't stopped, or the systemd service already running. Check
+`sudo systemctl status pi-fleet-dashboard` first; if that's active you
+don't need to (and shouldn't) also run `npm start` manually. Otherwise
+find and stop the other process: `sudo lsof -i :3000`, then `kill <PID>`.
+
+**"Could not decrypt stored credential"** &mdash; `backend/data/.key` no
+longer matches what encrypted the secrets in `backend/data/devices.json`.
+This happens if one of those two files gets replaced or regenerated
+without the other (they're a pair: losing the key means the secrets it
+encrypted are unrecoverable by design, same as losing an encryption key
+for any encrypted volume). As of 1.2.1 this only affects the specific
+device(s) involved, not the whole server. To recover:
+- If you have a backup export made *before* the mismatch (Settings &rarr;
+  Export backup), delete `backend/data/devices.json` and
+  `backend/data/.key`, restart the server (it generates a fresh key), then
+  restore from that backup.
+- Otherwise, remove the affected device(s) and re-add them with their
+  credentials.
+
 ## How it works
 
 - `backend/lib/ssh.js` opens a short-lived SSH connection per poll, runs a single
