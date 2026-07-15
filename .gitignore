@@ -1,0 +1,4 @@
+node_modules/
+**/data/devices.json
+**/data/.key
+*.log

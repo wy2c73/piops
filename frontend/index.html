@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pi Fleet Dashboard</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/xterm/5.3.0/css/xterm.min.css" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-led" id="fleetLed"></span>
+    <span class="brand-name">PI FLEET DASHBOARD</span>
+    <span class="brand-version" id="brandVersion"></span>
+  </div>
+  <div class="topbar-meta">
+    <span id="deviceCount">0 devices</span>
+    <span class="dot-sep">&middot;</span>
+    <span id="onlineCount">0 online</span>
+  </div>
+  <button class="btn btn-ghost" id="settingsBtn" title="Settings" aria-label="Settings">&#9881;</button>
+  <button class="btn btn-primary" id="addDeviceBtn">+ Add device</button>
+</header>
+
+<main class="main">
+  <div class="toolbar">
+    <input type="text" id="searchInput" placeholder="Filter by name, host, or group&hellip;" class="search-input" />
+    <select id="groupFilter" class="group-filter">
+      <option value="">All groups</option>
+    </select>
+    <div class="segmented" id="viewModeSegmented">
+      <button type="button" class="segmented-opt" data-value="grid" title="Card view">Cards</button>
+      <button type="button" class="segmented-opt" data-value="list" title="Detail table view">Details</button>
+    </div>
+  </div>
+
+  <div class="grid" id="deviceGrid"></div>
+  <div class="list-view" id="deviceListView" hidden></div>
+
+  <div class="empty-state" id="emptyState" hidden>
+    <p class="empty-title">No devices yet</p>
+    <p class="empty-sub">Add the first Pi in your fleet to start monitoring it.</p>
+    <button class="btn btn-primary" id="emptyAddBtn">+ Add device</button>
+  </div>
+</main>
+
+<!-- Settings modal -->
+<div class="modal-backdrop" id="settingsModalBackdrop" hidden>
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Settings</h2>
+      <button class="modal-close" id="settingsModalClose">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <label>Units</label>
+        <div class="segmented" id="unitSystemSegmented">
+          <button type="button" class="segmented-opt" data-value="metric">Metric</button>
+          <button type="button" class="segmented-opt" data-value="imperial">Imperial</button>
+        </div>
+      </div>
+      <div class="form-row">
+        <label>Temperature</label>
+        <div class="segmented" id="tempUnitSegmented">
+          <button type="button" class="segmented-opt" data-value="C">&deg;C</button>
+          <button type="button" class="segmented-opt" data-value="F">&deg;F</button>
+        </div>
+      </div>
+      <p class="form-note">Switching Metric/Imperial sets a matching default for temperature (Celsius or Fahrenheit) &mdash; you can still pick the temperature unit independently afterward. Saved on this browser only.</p>
+
+      <div class="form-row">
+        <label>"Open in local terminal" link</label>
+        <div class="segmented" id="localAppSegmented">
+          <button type="button" class="segmented-opt" data-value="system">System default</button>
+          <button type="button" class="segmented-opt" data-value="putty">PuTTY</button>
+          <button type="button" class="segmented-opt" data-value="winscp">WinSCP</button>
+        </div>
+        <p class="form-note">PuTTY needs a one-time protocol registration on Windows &mdash; see "Windows integration" in the README for a ready-made script. WinSCP registers its own link handler automatically when installed with default options.</p>
+      </div>
+
+      <hr class="modal-divider" />
+
+      <div class="form-row">
+        <label>Import devices from CSV</label>
+        <p class="form-note">Columns: name, host, port, username, group, authType (password or key), secret, passphrase. Existing devices (matched by host/port/username) are skipped.</p>
+        <input id="csvFile" type="file" accept=".csv,text/csv" />
+      </div>
+      <div class="form-actions">
+        <span class="test-result" id="csvImportResult"></span>
+        <button type="button" class="btn btn-ghost btn-sm" id="csvTemplateBtn">Download template</button>
+        <button type="button" class="btn btn-ghost" id="csvImportBtn">Import CSV</button>
+      </div>
+
+      <hr class="modal-divider" />
+
+      <div class="form-row">
+        <label>Export backup</label>
+        <p class="form-note">Bundles every device (including its saved credential) and these unit preferences into one file, encrypted with a passphrase you choose here. That passphrase is never stored &mdash; keep it somewhere safe, you'll need it to restore.</p>
+        <input id="exportPassphrase" type="password" placeholder="Passphrase (at least 8 characters)" />
+      </div>
+      <div class="form-actions">
+        <span class="test-result" id="exportResult"></span>
+        <button type="button" class="btn btn-ghost" id="exportBtn">Download backup</button>
+      </div>
+
+      <hr class="modal-divider" />
+
+      <div class="form-row">
+        <label>Restore from backup</label>
+        <p class="form-note">Adds any devices from the file that aren't already here (matched by host, port, and username) &mdash; existing devices are left untouched.</p>
+        <input id="importFile" type="file" accept="application/json" />
+        <input id="importPassphrase" type="password" placeholder="Backup passphrase" style="margin-top: 8px;" />
+      </div>
+      <div class="form-actions">
+        <span class="test-result" id="importResult"></span>
+        <button type="button" class="btn btn-ghost" id="importBtn">Restore devices</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add / Edit device modal -->
+<div class="modal-backdrop" id="deviceModalBackdrop" hidden>
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="deviceModalTitle">Add device</h2>
+      <button class="modal-close" id="deviceModalClose">&times;</button>
+    </div>
+    <form id="deviceForm" class="modal-body">
+      <input type="hidden" id="deviceId" />
+      <div class="form-row">
+        <label for="fName">Name</label>
+        <input id="fName" required placeholder="pi-media-server" />
+      </div>
+      <div class="form-row two-col">
+        <div>
+          <label for="fHost">Host / IP</label>
+          <input id="fHost" required placeholder="192.168.1.42" />
+        </div>
+        <div>
+          <label for="fPort">Port</label>
+          <input id="fPort" type="number" placeholder="22" value="22" />
+        </div>
+      </div>
+      <div class="form-row">
+        <label for="fUsername">Username</label>
+        <input id="fUsername" required placeholder="pi" />
+      </div>
+      <div class="form-row">
+        <label for="fGroup">Group</label>
+        <input id="fGroup" placeholder="Home Lab" />
+      </div>
+      <div class="form-row">
+        <label>Authentication</label>
+        <div class="segmented" id="authTypeSegmented">
+          <button type="button" class="segmented-opt active" data-value="password">Password</button>
+          <button type="button" class="segmented-opt" data-value="key">Private key</button>
+        </div>
+      </div>
+      <div class="form-row" id="secretRow">
+        <label for="fSecret" id="secretLabel">Password</label>
+        <textarea id="fSecret" rows="1" placeholder="Leave blank to keep existing credential when editing"></textarea>
+      </div>
+      <div class="form-row" id="passphraseRow" hidden>
+        <label for="fPassphrase">Key passphrase (optional)</label>
+        <input id="fPassphrase" type="password" />
+      </div>
+      <p class="form-note">Credentials are encrypted at rest on this dashboard's own disk (AES-256-GCM). They're only ever used to open outbound SSH connections to your devices.</p>
+      <div class="form-actions">
+        <span class="test-result" id="testResult"></span>
+        <button type="button" class="btn btn-ghost" id="testConnBtn">Test connection</button>
+        <button type="submit" class="btn btn-primary" id="saveDeviceBtn">Save device</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Device detail / services drawer -->
+<div class="modal-backdrop" id="detailBackdrop" hidden>
+  <div class="modal modal-wide">
+    <div class="modal-header">
+      <h2 id="detailTitle">Device</h2>
+      <button class="modal-close" id="detailClose">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="detail-stats" id="detailStats"></div>
+      <div class="detail-tabs">
+        <button class="tab-btn active" data-tab="services">Services</button>
+        <button class="tab-btn" data-tab="danger">Manage</button>
+      </div>
+      <div class="tab-panel" id="tabServices">
+        <div class="services-toolbar">
+          <input type="text" id="serviceFilter" placeholder="Filter services&hellip;" class="search-input" />
+          <button class="btn btn-ghost btn-sm" id="refreshServicesBtn">Refresh</button>
+        </div>
+        <div class="services-list" id="servicesList"><p class="muted">Loading services&hellip;</p></div>
+      </div>
+      <div class="tab-panel" id="tabDanger" hidden>
+        <p class="muted">Editing pulls the existing device into the Add/Edit form. Removing a device stops monitoring it and deletes its stored credential from this dashboard &mdash; it does not touch the Pi itself.</p>
+        <div class="form-actions">
+          <button class="btn btn-ghost" id="editFromDetailBtn">Edit device</button>
+          <button class="btn btn-danger" id="deleteFromDetailBtn">Remove device</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Terminal modal -->
+<div class="modal-backdrop" id="terminalBackdrop" hidden>
+  <div class="modal modal-terminal">
+    <div class="modal-header">
+      <h2 id="terminalTitle">Terminal</h2>
+      <div class="terminal-header-actions">
+        <a href="#" id="localSshLink" class="btn btn-ghost btn-sm" target="_blank" rel="noopener">Open in local terminal</a>
+        <button class="modal-close" id="terminalClose">&times;</button>
+      </div>
+    </div>
+    <div class="terminal-body">
+      <div id="xtermContainer"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xterm/5.3.0/lib/xterm.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xterm/5.3.0/addon-fit/xterm-addon-fit.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

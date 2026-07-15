@@ -1,0 +1,76 @@
+const express = require('express');
+const cors = require('cors');
+const path = require('path');
+const http = require('http');
+const { WebSocketServer } = require('ws');
+
+const devicesRouter = require('./routes/devices');
+const backupRouter = require('./routes/backup');
+const poller = require('./poller');
+const wsTerminal = require('./wsTerminal');
+
+const PORT = process.env.PORT || 3000;
+// Bind to all interfaces so the dashboard is reachable at the host's LAN IP,
+// not just localhost. Override with HOST=127.0.0.1 to restrict to local-only.
+const HOST = process.env.HOST || '0.0.0.0';
+
+const app = express();
+app.use(cors());
+app.use(express.json({ limit: '5mb' }));
+
+app.use('/api/devices', devicesRouter);
+app.use('/api/backup', backupRouter);
+app.get('/api/health', (req, res) => res.json({ ok: true }));
+app.get('/api/version', (req, res) => res.json({ version: require('./package.json').version }));
+
+// Serve the static frontend (no build step needed).
+const FRONTEND_DIR = path.join(__dirname, '..', 'frontend');
+app.use(express.static(FRONTEND_DIR));
+app.get('*', (req, res) => {
+  if (req.path.startsWith('/api') || req.path.startsWith('/ws')) return res.status(404).end();
+  res.sendFile(path.join(FRONTEND_DIR, 'index.html'));
+});
+
+const server = http.createServer(app);
+
+// Two websocket endpoints on the same HTTP server, routed by path.
+const statsWss = new WebSocketServer({ noServer: true });
+const terminalWss = new WebSocketServer({ noServer: true });
+
+statsWss.on('connection', (ws) => {
+  poller.subscribe(ws);
+  ws.send(JSON.stringify({ type: 'snapshot', stats: poller.getAllCached() }));
+});
+wsTerminal.attach(terminalWss);
+
+server.on('upgrade', (req, socket, head) => {
+  const url = new URL(req.url, 'http://localhost');
+  if (url.pathname === '/ws/stats') {
+    statsWss.handleUpgrade(req, socket, head, (ws) => statsWss.emit('connection', ws, req));
+  } else if (url.pathname === '/ws/terminal') {
+    terminalWss.handleUpgrade(req, socket, head, (ws) => terminalWss.emit('connection', ws, req));
+  } else {
+    socket.destroy();
+  }
+});
+
+poller.start();
+
+server.listen(PORT, HOST, () => {
+  console.log(`Pi Fleet Dashboard listening on ${HOST}:${PORT}`);
+  console.log(`  -> http://localhost:${PORT}`);
+  for (const addr of listLanAddresses()) {
+    console.log(`  -> http://${addr}:${PORT}`);
+  }
+});
+
+function listLanAddresses() {
+  const os = require('os');
+  const results = [];
+  for (const iface of Object.values(os.networkInterfaces())) {
+    for (const info of iface || []) {
+      if (info.family === 'IPv4' && !info.internal) results.push(info.address);
+    }
+  }
+  return results;
+}
