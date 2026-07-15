@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.3
+
+- Fixed horizontal scrolling in the Details (table) view when a device
+  name or other field was long. Columns now have fixed widths and wrap
+  text instead of forcing the table wider than its container.
+
 ## 1.2.2
 
 - CSV import now validates the header row explicitly. Previously, a CSV
