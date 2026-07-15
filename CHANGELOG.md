@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.4
+
+- Fixed the Terminal button wrapping onto two lines in the Details table
+  view (a side effect of the 1.2.3 fix). Column widths are now all
+  percentage-based and sum to exactly 100%, which also avoids a subtle
+  overflow that mixing fixed-pixel and percentage widths could cause on
+  wide screens.
+
 ## 1.2.3
 
 - Fixed horizontal scrolling in the Details (table) view when a device

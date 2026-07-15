@@ -172,22 +172,24 @@ button { font-family: inherit; }
 }
 /* Fixed column widths so the table always fits its container -- long text
    wraps within its column instead of forcing horizontal scroll. */
-.list-table th:nth-child(1) { width: 28px; }
-.list-table th:nth-child(2) { width: 15%; }
-.list-table th:nth-child(3) { width: 16%; }
+.list-table th:nth-child(1) { width: 3%; }
+.list-table th:nth-child(2) { width: 14%; }
+.list-table th:nth-child(3) { width: 15%; }
 .list-table th:nth-child(4),
 .list-table th:nth-child(5),
-.list-table th:nth-child(6) { width: 6%; }
-.list-table th:nth-child(7) { width: 7%; }
-.list-table th:nth-child(8) { width: 11%; }
+.list-table th:nth-child(6),
+.list-table th:nth-child(7) { width: 6%; }
+.list-table th:nth-child(8) { width: 10%; }
 .list-table th:nth-child(9),
-.list-table th:nth-child(10) { width: 13%; }
-.list-table th:nth-child(11) { width: 5%; }
-.list-table th:nth-child(12) { width: 82px; }
+.list-table th:nth-child(10) { width: 11%; }
+.list-table th:nth-child(11) { width: 4%; }
+.list-table th:nth-child(12) { width: 8%; }
 
 .list-row { cursor: pointer; }
 .list-row:hover { background: var(--surface-raised); }
 .list-row td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; overflow-wrap: anywhere; }
+.list-row td:last-child { white-space: nowrap; overflow-wrap: normal; }
+.list-row .term-btn { white-space: nowrap; }
 .list-name { font-weight: 600; overflow-wrap: anywhere; }
 .list-sub { font-family: var(--mono); font-size: 10.5px; color: var(--text-muted); overflow-wrap: anywhere; }
 .mono-cell { font-family: var(--mono); font-size: 11.5px; color: var(--text-muted); overflow-wrap: anywhere; }
