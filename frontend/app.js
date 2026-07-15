@@ -268,6 +268,15 @@ $('#csvImportBtn').addEventListener('click', async () => {
     const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
     if (parsed.errors.length) throw new Error(parsed.errors[0].message);
 
+    const requiredCols = ['name', 'host', 'username', 'secret'];
+    const missingCols = requiredCols.filter((c) => !(parsed.meta.fields || []).includes(c));
+    if (missingCols.length) {
+      throw new Error(
+        `This file's header row doesn't match what's expected (missing: ${missingCols.join(', ')}). ` +
+        `The first line must be exactly: name,host,port,username,group,authType,secret,passphrase`
+      );
+    }
+
     const existingKeys = new Set(devices.map((d) => `${d.host}:${d.port}:${d.username}`.toLowerCase()));
     let created = 0, skipped = 0, failed = 0;
 

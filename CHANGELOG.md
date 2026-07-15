@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.2
+
+- CSV import now validates the header row explicitly. Previously, a CSV
+  missing its header line (or with an altered one) would silently mark
+  every single row as invalid with no explanation; now it fails once with
+  a clear message naming the missing column(s) and the expected header.
+
 ## 1.2.1
 
 - Fixed a bug where a device with an undecryptable stored credential (e.g.
