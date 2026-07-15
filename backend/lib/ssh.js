@@ -198,4 +198,31 @@ async function testConnection(device) {
   return true;
 }
 
-module.exports = { connect, exec, execScript, collectStats, listServices, testConnection };
+// Ports commonly used by self-hosted web UIs on a home-lab Pi fleet (Grafana,
+// Home Assistant, Node-RED, Plex, Jellyfin, Pi-hole, etc). Recognized ports
+// get rendered as a clickable link in the UI; anything else is just listed.
+const COMMON_HTTP_PORTS = new Set([80, 1880, 3000, 3001, 4000, 5000, 5001, 8000, 8008, 8080, 8081, 8096, 8123, 8181, 8888, 9000, 9090, 9091, 32400]);
+const COMMON_HTTPS_PORTS = new Set([443, 8443, 9443]);
+
+async function listPorts(device) {
+  const conn = await connect(device);
+  try {
+    const { stdout } = await execScript(
+      conn,
+      "(ss -tln 2>/dev/null || netstat -tln 2>/dev/null) | grep LISTEN | awk '{print $4}'"
+    );
+    const ports = new Set();
+    stdout.split('\n').forEach((line) => {
+      const match = line.trim().match(/:(\d+)$/);
+      if (match) ports.add(parseInt(match[1], 10));
+    });
+    return [...ports].sort((a, b) => a - b).map((port) => ({
+      port,
+      scheme: COMMON_HTTPS_PORTS.has(port) ? 'https' : COMMON_HTTP_PORTS.has(port) ? 'http' : null,
+    }));
+  } finally {
+    conn.end();
+  }
+}
+
+module.exports = { connect, exec, execScript, collectStats, listServices, listPorts, testConnection };

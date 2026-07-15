@@ -96,6 +96,18 @@
       <hr class="modal-divider" />
 
       <div class="form-row">
+        <label>Device groups</label>
+        <p class="form-note">Manage the group names offered in the "Add device" dropdown. Removing a group here doesn't change any device already assigned to it.</p>
+        <div class="group-add-row">
+          <input id="newGroupName" type="text" placeholder="New group name" />
+          <button type="button" class="btn btn-ghost btn-sm" id="addGroupBtn">Add</button>
+        </div>
+        <div class="group-list" id="groupList"></div>
+      </div>
+
+      <hr class="modal-divider" />
+
+      <div class="form-row">
         <label>Export backup</label>
         <p class="form-note">Bundles every device (including its saved credential) and these unit preferences into one file, encrypted with a passphrase you choose here. That passphrase is never stored &mdash; keep it somewhere safe, you'll need it to restore.</p>
         <input id="exportPassphrase" type="password" placeholder="Passphrase (at least 8 characters)" />
@@ -150,7 +162,7 @@
       </div>
       <div class="form-row">
         <label for="fGroup">Group</label>
-        <input id="fGroup" placeholder="Home Lab" />
+        <select id="fGroup"></select>
       </div>
       <div class="form-row">
         <label>Authentication</label>
@@ -188,6 +200,7 @@
       <div class="detail-stats" id="detailStats"></div>
       <div class="detail-tabs">
         <button class="tab-btn active" data-tab="services">Services</button>
+        <button class="tab-btn" data-tab="ports">Ports</button>
         <button class="tab-btn" data-tab="danger">Manage</button>
       </div>
       <div class="tab-panel" id="tabServices">
@@ -196,6 +209,13 @@
           <button class="btn btn-ghost btn-sm" id="refreshServicesBtn">Refresh</button>
         </div>
         <div class="services-list" id="servicesList"><p class="muted">Loading services&hellip;</p></div>
+      </div>
+      <div class="tab-panel" id="tabPorts" hidden>
+        <div class="services-toolbar">
+          <p class="muted" style="margin: 0;">Open TCP ports detected via <code>ss</code>/<code>netstat</code>. Recognized web ports are clickable.</p>
+          <button class="btn btn-ghost btn-sm" id="refreshPortsBtn">Refresh</button>
+        </div>
+        <div class="ports-list" id="portsList"></div>
       </div>
       <div class="tab-panel" id="tabDanger" hidden>
         <p class="muted">Editing pulls the existing device into the Add/Edit form. Removing a device stops monitoring it and deletes its stored credential from this dashboard &mdash; it does not touch the Pi itself.</p>

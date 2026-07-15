@@ -8,6 +8,7 @@ const { v4: uuidv4 } = require('uuid');
 const { encrypt, decrypt } = require('./crypto');
 
 const DATA_PATH = path.join(__dirname, '..', 'data', 'devices.json');
+const GROUPS_PATH = path.join(__dirname, '..', 'data', 'groups.json');
 
 function load() {
   if (!fs.existsSync(DATA_PATH)) return [];
@@ -96,4 +97,45 @@ function remove(id) {
   return next.length !== devices.length;
 }
 
-module.exports = { list, get, getWithSecret, create, update, remove };
+module.exports = { list, get, getWithSecret, create, update, remove, listGroups, addGroup, removeGroup };
+
+// ---- Curated device groups ----
+// A small, separate list of group names the person has explicitly created,
+// so the "Add device" form can offer a dropdown instead of free text.
+// Devices can still carry a group value that isn't in this list (e.g. one
+// typed in before this existed) -- that's fine, it just won't show up here
+// until added.
+
+function loadGroups() {
+  if (!fs.existsSync(GROUPS_PATH)) return [];
+  try {
+    return JSON.parse(fs.readFileSync(GROUPS_PATH, 'utf8'));
+  } catch {
+    return [];
+  }
+}
+
+function saveGroups(groups) {
+  fs.mkdirSync(path.dirname(GROUPS_PATH), { recursive: true });
+  fs.writeFileSync(GROUPS_PATH, JSON.stringify(groups, null, 2), { mode: 0o600 });
+}
+
+function listGroups() {
+  return loadGroups();
+}
+
+function addGroup(name) {
+  const groups = loadGroups();
+  if (!groups.some((g) => g.toLowerCase() === name.toLowerCase())) {
+    groups.push(name);
+    groups.sort((a, b) => a.localeCompare(b));
+    saveGroups(groups);
+  }
+  return groups;
+}
+
+function removeGroup(name) {
+  const groups = loadGroups().filter((g) => g !== name);
+  saveGroups(groups);
+  return groups;
+}

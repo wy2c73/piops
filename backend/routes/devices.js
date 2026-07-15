@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const store = require('../lib/store');
 const poller = require('../poller');
-const { testConnection, listServices } = require('../lib/ssh');
+const { testConnection, listServices, listPorts } = require('../lib/ssh');
 
 // List devices merged with their latest cached stats.
 router.get('/', (req, res) => {
@@ -64,6 +64,17 @@ router.get('/:id/services', async (req, res) => {
   try {
     const services = await listServices(device);
     res.json(services);
+  } catch (err) {
+    res.status(502).json({ error: err.message });
+  }
+});
+
+router.get('/:id/ports', async (req, res) => {
+  const device = store.getWithSecret(req.params.id);
+  if (!device) return res.status(404).json({ error: 'Device not found' });
+  try {
+    const ports = await listPorts(device);
+    res.json(ports);
   } catch (err) {
     res.status(502).json({ error: err.message });
   }

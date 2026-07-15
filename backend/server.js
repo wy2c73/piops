@@ -6,6 +6,7 @@ const { WebSocketServer } = require('ws');
 
 const devicesRouter = require('./routes/devices');
 const backupRouter = require('./routes/backup');
+const groupsRouter = require('./routes/groups');
 const poller = require('./poller');
 const wsTerminal = require('./wsTerminal');
 
@@ -20,12 +21,18 @@ app.use(express.json({ limit: '5mb' }));
 
 app.use('/api/devices', devicesRouter);
 app.use('/api/backup', backupRouter);
+app.use('/api/groups', groupsRouter);
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 app.get('/api/version', (req, res) => res.json({ version: require('./package.json').version }));
 
-// Serve the static frontend (no build step needed).
+// Serve the static frontend (no build step needed). no-cache forces the
+// browser to revalidate on every load instead of serving a stale copy of
+// index.html/app.js/style.css after an update -- important since this
+// project gets updated in place fairly often.
 const FRONTEND_DIR = path.join(__dirname, '..', 'frontend');
-app.use(express.static(FRONTEND_DIR));
+app.use(express.static(FRONTEND_DIR, {
+  setHeaders: (res) => res.setHeader('Cache-Control', 'no-cache'),
+}));
 app.get('*', (req, res) => {
   if (req.path.startsWith('/api') || req.path.startsWith('/ws')) return res.status(404).end();
   res.sendFile(path.join(FRONTEND_DIR, 'index.html'));

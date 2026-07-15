@@ -12,6 +12,8 @@ dashboard reaches out over SSH to collect stats and to open interactive terminal
 - **Drag to reorder** — rearrange devices in either view; order is remembered per browser
 - **Live stats** — CPU, memory, disk, temperature, uptime, load average, running service count, OS version, and hardware model — polled over SSH every 15s and pushed to the browser over a websocket
 - **Services tab** per device — full `systemctl` unit list with status, filterable
+- **Ports tab** per device — open TCP ports via `ss`/`netstat`; recognized web ports (Grafana, Home Assistant, Node-RED, Plex, Jellyfin, and similar) are clickable links
+- **Groups** — manage a curated list of group names in Settings; the Add/Edit device form uses a dropdown fed from that list
 - **In-browser SSH terminal** — click "Terminal" on any card for a real xterm.js session proxied over SSH
 - **"Open in local terminal"** — hands off to your system's default `ssh://` handler, or launch PuTTY / WinSCP directly (pick one in Settings; see "Windows integration" below)
 - **Settings** — Metric/Imperial and °C/°F display preference, view mode, local terminal app, saved per-browser

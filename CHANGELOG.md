@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.2.0
+
+- Fixed the version number not showing in the top bar (added error logging
+  instead of a silent failure, and disabled asset caching so updates don't
+  need a manual hard-refresh)
+- Added curated device groups: manage group names in Settings, and the
+  Add/Edit device form now uses a dropdown fed by that list instead of free
+  text
+- Added an open-ports tab to the device detail view (via `ss`/`netstat`,
+  no extra privileges needed) &mdash; recognized web ports (Grafana, Home
+  Assistant, Node-RED, Plex, Jellyfin, and other common self-hosted UIs)
+  render as clickable links
+- Device backups now also include the curated groups list
+
 ## 1.1.0
 
 - Renamed the project to **Pi Fleet Dashboard**

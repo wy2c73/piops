@@ -306,6 +306,76 @@ $('#csvImportBtn').addEventListener('click', async () => {
   }
 });
 
+// ---------------------------------------------------------------- device groups
+let groups = [];
+
+async function loadGroups() {
+  try {
+    const res = await fetch('/api/groups');
+    groups = await res.json();
+  } catch {
+    groups = [];
+  }
+  renderGroupList();
+  populateGroupOptions();
+  populateGroupFilter();
+}
+
+function renderGroupList() {
+  const container = $('#groupList');
+  if (!groups.length) {
+    container.innerHTML = '<p class="muted">No custom groups yet &mdash; devices default to "Unsorted".</p>';
+    return;
+  }
+  container.innerHTML = groups
+    .map((g) => `
+      <span class="group-chip">
+        ${escapeHtml(g)}
+        <button type="button" class="group-chip-remove" title="Remove group" data-group="${escapeHtml(g)}">&times;</button>
+      </span>`)
+    .join('');
+}
+
+$('#addGroupBtn').addEventListener('click', async () => {
+  const input = $('#newGroupName');
+  const name = input.value.trim();
+  if (!name) return;
+  try {
+    const res = await fetch('/api/groups', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    });
+    if (!res.ok) throw new Error((await res.json()).error || 'Could not add group');
+    input.value = '';
+    await loadGroups();
+    populateGroupFilter();
+  } catch (err) {
+    toast(err.message, true);
+  }
+});
+
+$('#groupList').addEventListener('click', async (e) => {
+  const btn = e.target.closest('.group-chip-remove');
+  if (!btn) return;
+  const name = btn.dataset.group;
+  await fetch(`/api/groups/${encodeURIComponent(name)}`, { method: 'DELETE' });
+  await loadGroups();
+  populateGroupFilter();
+});
+
+// Populates the Add/Edit device form's group <select>. `selected` (used
+// when editing) is always included even if it's not in the curated list,
+// so editing a device never silently changes its group.
+function populateGroupOptions(selected) {
+  const select = $('#fGroup');
+  const all = new Set(['Unsorted', ...groups]);
+  if (selected) all.add(selected);
+  const sorted = [...all].sort((a, b) => a.localeCompare(b));
+  select.innerHTML = sorted.map((g) => `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`).join('');
+  select.value = selected || 'Unsorted';
+}
+
 // ---------------------------------------------------------------- toast
 let toastTimer;
 function toast(msg, isError = false) {
@@ -329,8 +399,9 @@ async function loadDevices() {
 function populateGroupFilter() {
   const select = $('#groupFilter');
   const current = select.value;
-  const groups = [...new Set(devices.map((d) => d.group || 'Unsorted'))].sort();
-  select.innerHTML = '<option value="">All groups</option>' + groups.map((g) => `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`).join('');
+  const fromDevices = devices.map((d) => d.group || 'Unsorted');
+  const allGroups = [...new Set([...groups, ...fromDevices])].sort();
+  select.innerHTML = '<option value="">All groups</option>' + allGroups.map((g) => `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`).join('');
   select.value = current;
 }
 
@@ -548,6 +619,7 @@ function openAddModal() {
   $('#deviceForm').reset();
   $('#deviceId').value = '';
   $('#fPort').value = 22;
+  populateGroupOptions();
   setAuthType('password');
   $('#secretLabel').textContent = 'Password';
   $('#fSecret').placeholder = 'Password for SSH login';
@@ -563,7 +635,7 @@ function openEditModal(device) {
   $('#fHost').value = device.host;
   $('#fPort').value = device.port;
   $('#fUsername').value = device.username;
-  $('#fGroup').value = device.group || '';
+  populateGroupOptions(device.group);
   setAuthType(device.authType || 'password');
   $('#fSecret').value = '';
   $('#fSecret').placeholder = 'Leave blank to keep the existing credential';
@@ -700,7 +772,9 @@ async function openDetail(deviceId) {
 function switchTab(name) {
   document.querySelectorAll('.tab-btn').forEach((b) => b.classList.toggle('active', b.dataset.tab === name));
   $('#tabServices').hidden = name !== 'services';
+  $('#tabPorts').hidden = name !== 'ports';
   $('#tabDanger').hidden = name !== 'danger';
+  if (name === 'ports' && activeDeviceId) loadPorts(activeDeviceId);
 }
 document.querySelectorAll('.tab-btn').forEach((b) => b.addEventListener('click', () => switchTab(b.dataset.tab)));
 
@@ -746,6 +820,33 @@ function applyServiceFilter() {
 }
 $('#serviceFilter').addEventListener('input', applyServiceFilter);
 $('#refreshServicesBtn').addEventListener('click', () => activeDeviceId && loadServices(activeDeviceId));
+
+async function loadPorts(deviceId) {
+  const listEl = $('#portsList');
+  listEl.innerHTML = '<p class="muted">Scanning open ports\u2026</p>';
+  try {
+    const res = await fetch(`${API}/${deviceId}/ports`);
+    if (!res.ok) throw new Error((await res.json()).error || 'Could not list open ports');
+    const ports = await res.json();
+    if (!ports.length) {
+      listEl.innerHTML = '<p class="muted">No listening TCP ports found (or this account can\'t see them).</p>';
+      return;
+    }
+    const device = devices.find((d) => d.id === deviceId);
+    listEl.innerHTML = ports
+      .map((p) => {
+        if (p.scheme && device) {
+          const url = `${p.scheme}://${device.host}:${p.port}/`;
+          return `<a class="port-chip port-chip-link" href="${url}" target="_blank" rel="noopener">${p.port} <span class="port-scheme">${p.scheme}</span></a>`;
+        }
+        return `<span class="port-chip">${p.port}</span>`;
+      })
+      .join('');
+  } catch (err) {
+    listEl.innerHTML = `<p class="muted">${escapeHtml(err.message)}</p>`;
+  }
+}
+$('#refreshPortsBtn').addEventListener('click', () => activeDeviceId && loadPorts(activeDeviceId));
 
 $('#detailClose').addEventListener('click', () => (detailModal.hidden = true, activeDeviceId = null));
 detailModal.addEventListener('click', (e) => { if (e.target === detailModal) { detailModal.hidden = true; activeDeviceId = null; } });
@@ -840,13 +941,16 @@ terminalModal.addEventListener('click', (e) => { if (e.target === terminalModal)
 async function loadVersion() {
   try {
     const res = await fetch('/api/version');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const { version } = await res.json();
     $('#brandVersion').textContent = `v${version}`;
-  } catch {
-    /* non-essential; leave blank if it fails */
+  } catch (err) {
+    console.error('Could not load version from /api/version:', err);
+    $('#brandVersion').textContent = 'v?';
   }
 }
 
 loadVersion();
+loadGroups();
 loadDevices();
 connectStatsSocket();
