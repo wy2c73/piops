@@ -26,6 +26,7 @@
 
 <main class="main">
   <div class="toolbar">
+    <label class="checkbox-row select-all-row"><input type="checkbox" id="selectAllCheckbox" /> Select all</label>
     <input type="text" id="searchInput" placeholder="Filter by name, host, or group&hellip;" class="search-input" />
     <select id="groupFilter" class="group-filter">
       <option value="">All groups</option>
@@ -34,6 +35,15 @@
       <button type="button" class="segmented-opt" data-value="grid" title="Card view">Card View</button>
       <button type="button" class="segmented-opt" data-value="list" title="List view">List View</button>
     </div>
+  </div>
+
+  <div class="bulk-bar" id="bulkBar" hidden>
+    <span id="bulkCount">0 selected</span>
+    <select id="bulkGroupSelect"></select>
+    <button class="btn btn-sm btn-ghost" id="bulkAssignGroupBtn">Assign group</button>
+    <button class="btn btn-sm btn-ghost" id="bulkExportBtn">Export CSV</button>
+    <button class="btn btn-sm btn-danger" id="bulkDeleteBtn">Delete</button>
+    <button class="btn btn-sm btn-ghost" id="bulkClearBtn">Clear selection</button>
   </div>
 
   <div class="grid" id="deviceGrid"></div>
@@ -165,6 +175,19 @@
       <hr class="modal-divider" />
 
       <div class="form-row">
+        <label>Custom quick commands</label>
+        <p class="form-note">Define reusable commands that show up as buttons on every device's Actions tab. These run with whatever privileges the device's SSH account has &mdash; treat this like handing out limited root access, and only add commands you trust. Each run still requires confirming the exact command text on the device it's run against.</p>
+        <input id="newCommandLabel" type="text" placeholder="Button label, e.g. Update packages" />
+        <textarea id="newCommandText" rows="2" placeholder="Command to run, e.g. sudo -n apt-get update && sudo -n apt-get -y upgrade" style="margin-top: 8px;"></textarea>
+        <div class="form-actions">
+          <button type="button" class="btn btn-ghost" id="addCommandBtn">Add command</button>
+        </div>
+        <div class="command-list" id="commandList"></div>
+      </div>
+
+      <hr class="modal-divider" />
+
+      <div class="form-row">
         <label>Export backup</label>
         <p class="form-note">Bundles every device (including its saved credential) and these unit preferences into one file, encrypted with a passphrase you choose here. That passphrase is never stored &mdash; keep it somewhere safe, you'll need it to restore.</p>
         <input id="exportPassphrase" type="password" placeholder="Passphrase (at least 8 characters)" />
@@ -258,6 +281,7 @@
       <div class="detail-tabs">
         <button class="tab-btn active" data-tab="services">Services</button>
         <button class="tab-btn" data-tab="ports">Ports</button>
+        <button class="tab-btn" data-tab="actions">Actions</button>
         <button class="tab-btn" data-tab="danger">Manage</button>
       </div>
       <div class="tab-panel" id="tabServices">
@@ -273,6 +297,28 @@
           <button class="btn btn-ghost btn-sm" id="refreshPortsBtn">Refresh</button>
         </div>
         <div class="ports-list" id="portsList"></div>
+      </div>
+      <div class="tab-panel" id="tabActions" hidden>
+        <p class="form-note">These run over SSH with whatever privileges the device's account has. Power actions and service restarts need passwordless sudo configured on the device for those specific commands &mdash; see the README if you haven't set that up.</p>
+        <div class="actions-section">
+          <label>Power</label>
+          <div class="action-buttons">
+            <button class="btn btn-danger btn-sm" id="rebootBtn">Reboot</button>
+            <button class="btn btn-danger btn-sm" id="shutdownBtn">Shutdown</button>
+          </div>
+        </div>
+        <div class="actions-section">
+          <label>Custom commands</label>
+          <div class="action-buttons" id="customCommandButtons"></div>
+          <p class="muted" id="noCommandsNote" hidden>No custom commands yet &mdash; add some in Settings.</p>
+        </div>
+        <div class="actions-output" id="actionsOutput" hidden>
+          <div class="actions-output-header">
+            <span id="actionsOutputTitle"></span>
+            <button class="modal-close" id="actionsOutputClose">&times;</button>
+          </div>
+          <pre id="actionsOutputBody"></pre>
+        </div>
       </div>
       <div class="tab-panel" id="tabDanger" hidden>
         <p class="muted">Editing pulls the existing device into the Add/Edit form. Removing a device stops monitoring it and deletes its stored credential from this dashboard &mdash; it does not touch the Pi itself.</p>

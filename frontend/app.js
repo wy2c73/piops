@@ -3,6 +3,7 @@ const API = '/api/devices';
 let devices = [];       // last known device list (without secrets)
 let statsCache = {};    // deviceId -> stats, kept fresh via websocket
 let activeDeviceId = null;
+let selectedIds = new Set(); // devices checked for bulk actions
 let term = null, fitAddon = null, termSocket = null;
 
 const $ = (sel) => document.querySelector(sel);
@@ -142,6 +143,7 @@ function refreshVisibleUnits() {
 $('#settingsBtn').addEventListener('click', () => {
   applySettingsUI();
   applyAlertConfigUI();
+  renderCommandList();
   $('#settingsModalBackdrop').hidden = false;
 });
 $('#settingsModalClose').addEventListener('click', () => ($('#settingsModalBackdrop').hidden = true));
@@ -283,6 +285,8 @@ $('#importBtn').addEventListener('click', async () => {
     await loadDevices();
     await loadGroups();
     await loadAlertConfig();
+    await loadCustomCommands();
+    renderCommandList();
     refreshVisibleUnits();
   } catch (err) {
     resultEl.textContent = err.message;
@@ -532,6 +536,58 @@ $('#groupList').addEventListener('click', async (e) => {
   populateGroupFilter();
 });
 
+// ---------------------------------------------------------------- custom commands (Settings management)
+function renderCommandList() {
+  const container = $('#commandList');
+  if (!customCommands.length) {
+    container.innerHTML = '<p class="muted">No custom commands yet.</p>';
+    return;
+  }
+  container.innerHTML = customCommands
+    .map(
+      (c) => `
+    <div class="command-row">
+      <div>
+        <div class="command-label">${escapeHtml(c.label)}</div>
+        <div class="command-text">${escapeHtml(c.command)}</div>
+      </div>
+      <button type="button" class="command-remove" title="Remove command" data-id="${escapeHtml(c.id)}">&times;</button>
+    </div>`
+    )
+    .join('');
+}
+
+$('#addCommandBtn').addEventListener('click', async () => {
+  const label = $('#newCommandLabel').value.trim();
+  const command = $('#newCommandText').value.trim();
+  if (!label || !command) {
+    toast('Both a label and a command are required', true);
+    return;
+  }
+  try {
+    const res = await fetch('/api/commands', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ label, command }),
+    });
+    if (!res.ok) throw new Error((await res.json()).error || 'Could not add command');
+    $('#newCommandLabel').value = '';
+    $('#newCommandText').value = '';
+    await loadCustomCommands();
+    renderCommandList();
+  } catch (err) {
+    toast(err.message, true);
+  }
+});
+
+$('#commandList').addEventListener('click', async (e) => {
+  const btn = e.target.closest('.command-remove');
+  if (!btn) return;
+  await fetch(`/api/commands/${encodeURIComponent(btn.dataset.id)}`, { method: 'DELETE' });
+  await loadCustomCommands();
+  renderCommandList();
+});
+
 // Populates the Add/Edit device form's group <select>. `selected` (used
 // when editing) is always included even if it's not in the curated list,
 // so editing a device never silently changes its group.
@@ -606,6 +662,13 @@ function render() {
   const query = $('#searchInput').value.trim().toLowerCase();
   const groupFilter = $('#groupFilter').value;
 
+  // Drop selections for devices that no longer exist (e.g. deleted elsewhere).
+  const currentIds = new Set(devices.map((d) => d.id));
+  for (const id of selectedIds) {
+    if (!currentIds.has(id)) selectedIds.delete(id);
+  }
+  updateBulkBar();
+
   const filtered = applyOrder(devices).filter((d) => {
     const matchesQuery = !query || [d.name, d.host, d.group].some((v) => (v || '').toLowerCase().includes(query));
     const matchesGroup = !groupFilter || (d.group || 'Unsorted') === groupFilter;
@@ -632,6 +695,89 @@ function render() {
     filtered.forEach((d) => grid.appendChild(renderCard(d)));
   }
 }
+
+// ---------------------------------------------------------------- bulk selection & actions
+function toggleSelect(id, checked) {
+  if (checked) selectedIds.add(id);
+  else selectedIds.delete(id);
+  updateBulkBar();
+}
+
+function updateBulkBar() {
+  const bar = $('#bulkBar');
+  bar.hidden = selectedIds.size === 0;
+  $('#bulkCount').textContent = `${selectedIds.size} selected`;
+  populateBulkGroupSelect();
+  const allChecked = devices.length > 0 && devices.every((d) => selectedIds.has(d.id));
+  $('#selectAllCheckbox').checked = allChecked;
+}
+
+function populateBulkGroupSelect() {
+  const select = $('#bulkGroupSelect');
+  const all = new Set(['Unsorted', ...groups]);
+  select.innerHTML = [...all].sort().map((g) => `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`).join('');
+}
+
+function downloadFile(content, filename, mimeType) {
+  const blobUrl = URL.createObjectURL(new Blob([content], { type: mimeType }));
+  const a = document.createElement('a');
+  a.href = blobUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(blobUrl);
+}
+
+function csvEscape(value) {
+  const s = String(value ?? '');
+  return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+
+$('#selectAllCheckbox').addEventListener('change', (e) => {
+  if (e.target.checked) devices.forEach((d) => selectedIds.add(d.id));
+  else selectedIds.clear();
+  updateBulkBar();
+  render();
+});
+
+$('#bulkAssignGroupBtn').addEventListener('click', async () => {
+  const group = $('#bulkGroupSelect').value;
+  if (!confirm(`Assign group "${group}" to ${selectedIds.size} device(s)?`)) return;
+  const ids = [...selectedIds];
+  await Promise.all(
+    ids.map((id) => fetch(`${API}/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ group }) }))
+  );
+  toast(`Assigned "${group}" to ${ids.length} device(s)`);
+  await loadDevices();
+});
+
+$('#bulkExportBtn').addEventListener('click', () => {
+  const rows = [['name', 'host', 'port', 'username', 'group', 'authType', 'secret', 'passphrase']];
+  for (const id of selectedIds) {
+    const d = devices.find((x) => x.id === id);
+    if (!d) continue;
+    rows.push([d.name, d.host, d.port, d.username, d.group || 'Unsorted', d.authType, '', '']);
+  }
+  const csv = rows.map((r) => r.map(csvEscape).join(',')).join('\n');
+  downloadFile(csv, `pi-fleet-dashboard-export-${new Date().toISOString().slice(0, 10)}.csv`, 'text/csv');
+  toast(`Exported ${rows.length - 1} device(s) \u2014 credentials aren't included; re-add them before importing elsewhere`);
+});
+
+$('#bulkDeleteBtn').addEventListener('click', async () => {
+  const ids = [...selectedIds];
+  if (!confirm(`Delete ${ids.length} device(s)? This removes their stored credentials too and can't be undone.`)) return;
+  await Promise.all(ids.map((id) => fetch(`${API}/${id}`, { method: 'DELETE' })));
+  toast(`Deleted ${ids.length} device(s)`);
+  selectedIds.clear();
+  await loadDevices();
+});
+
+$('#bulkClearBtn').addEventListener('click', () => {
+  selectedIds.clear();
+  updateBulkBar();
+  render();
+});
 
 function attachDragHandlers(el, device) {
   el.draggable = true;
@@ -661,7 +807,7 @@ function renderListView(container, list) {
   table.innerHTML = `
     <thead>
       <tr>
-        <th></th><th>Name</th><th>Host</th><th>CPU</th><th>Mem</th><th>Disk</th>
+        <th></th><th></th><th>Name</th><th>Host</th><th>CPU</th><th>Mem</th><th>Disk</th>
         <th>Temp</th><th>Uptime</th><th>OS</th><th>Hardware</th><th>Svc</th><th></th>
       </tr>
     </thead>
@@ -674,6 +820,7 @@ function renderListView(container, list) {
     const online = stats.status === 'online';
     const row = el('tr', 'list-row');
     row.innerHTML = `
+      <td><label class="card-select" title="Select for bulk actions"><input type="checkbox" class="device-select" data-id="${device.id}" ${selectedIds.has(device.id) ? 'checked' : ''} /></label></td>
       <td><span class="led ${ledClass}" title="${stats.status}"></span>${online ? throttleIcon(stats.throttled) : ''}</td>
       <td>
         <div class="list-name">${escapeHtml(device.name)}</div>
@@ -694,6 +841,8 @@ function renderListView(container, list) {
       e.stopPropagation();
       openTerminal(device);
     });
+    row.querySelector('.device-select').addEventListener('click', (e) => e.stopPropagation());
+    row.querySelector('.device-select').addEventListener('change', (e) => toggleSelect(device.id, e.target.checked));
     row.addEventListener('click', () => openDetail(device.id));
     attachDragHandlers(row, device);
     tbody.appendChild(row);
@@ -712,10 +861,13 @@ function renderCard(device) {
 
   card.innerHTML = `
     <div class="card-top">
-      <div>
-        <p class="card-title">${escapeHtml(device.name)}</p>
-        <p class="card-sub">${escapeHtml(device.username)}@${escapeHtml(device.host)}:${device.port}</p>
-        <span class="card-group">${escapeHtml(device.group || 'Unsorted')}</span>
+      <div class="card-top-left">
+        <label class="card-select" title="Select for bulk actions"><input type="checkbox" class="device-select" data-id="${device.id}" ${selectedIds.has(device.id) ? 'checked' : ''} /></label>
+        <div>
+          <p class="card-title">${escapeHtml(device.name)}</p>
+          <p class="card-sub">${escapeHtml(device.username)}@${escapeHtml(device.host)}:${device.port}</p>
+          <span class="card-group">${escapeHtml(device.group || 'Unsorted')}</span>
+        </div>
       </div>
       <span class="led ${ledClass}" title="${stats.status}"></span>
     </div>
@@ -748,6 +900,8 @@ function renderCard(device) {
     e.stopPropagation();
     openTerminal(device);
   });
+  card.querySelector('.device-select').addEventListener('click', (e) => e.stopPropagation());
+  card.querySelector('.device-select').addEventListener('change', (e) => toggleSelect(device.id, e.target.checked));
   card.addEventListener('click', () => openDetail(device.id));
   card.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDetail(device.id); }
@@ -937,12 +1091,14 @@ async function openDetail(deviceId) {
   detailModal.hidden = false;
   switchTab('services');
   loadServices(deviceId);
+  $('#actionsOutput').hidden = true;
 }
 
 function switchTab(name) {
   document.querySelectorAll('.tab-btn').forEach((b) => b.classList.toggle('active', b.dataset.tab === name));
   $('#tabServices').hidden = name !== 'services';
   $('#tabPorts').hidden = name !== 'ports';
+  $('#tabActions').hidden = name !== 'actions';
   $('#tabDanger').hidden = name !== 'danger';
   if (name === 'ports' && activeDeviceId) loadPorts(activeDeviceId);
 }
@@ -1003,10 +1159,11 @@ function applyServiceFilter() {
         <div class="service-desc">${escapeHtml(s.description || '')}</div>
       </td>
       <td><span class="service-state ${escapeHtml(s.active)}">${escapeHtml(s.sub)}</span></td>
+      <td><button class="btn btn-ghost btn-sm service-restart-btn" data-service="${escapeHtml(s.name)}" title="Restart this service">Restart</button></td>
     </tr>`
         )
         .join('')
-    : '<tr><td colspan="2"><p class="muted" style="padding: 4px 0;">No matching services.</p></td></tr>';
+    : '<tr><td colspan="3"><p class="muted" style="padding: 4px 0;">No matching services.</p></td></tr>';
 
   listEl.innerHTML = `
     <table class="services-table">
@@ -1014,6 +1171,7 @@ function applyServiceFilter() {
         <tr>
           <th data-sort="name" class="${serviceSort.key === 'name' ? 'sorted' : ''}">Name${sortArrow('name')}</th>
           <th data-sort="active" class="${serviceSort.key === 'active' ? 'sorted' : ''}">Status${sortArrow('active')}</th>
+          <th></th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
@@ -1025,15 +1183,127 @@ function applyServiceFilter() {
 // re-attaching it after each render.
 $('#servicesList').addEventListener('click', (e) => {
   const th = e.target.closest('th[data-sort]');
-  if (!th) return;
-  const key = th.dataset.sort;
-  if (serviceSort.key === key) serviceSort.dir *= -1;
-  else serviceSort = { key, dir: 1 };
-  applyServiceFilter();
+  if (th) {
+    const key = th.dataset.sort;
+    if (serviceSort.key === key) serviceSort.dir *= -1;
+    else serviceSort = { key, dir: 1 };
+    applyServiceFilter();
+    return;
+  }
+  const restartBtn = e.target.closest('.service-restart-btn');
+  if (restartBtn && activeDeviceId) {
+    restartService(activeDeviceId, restartBtn.dataset.service);
+  }
 });
+
+async function restartService(deviceId, serviceName) {
+  const device = devices.find((d) => d.id === deviceId);
+  if (!confirm(`Restart ${serviceName} on "${device?.name || 'this device'}"?`)) return;
+  toast(`Restarting ${serviceName}\u2026`);
+  try {
+    const res = await fetch(`${API}/${deviceId}/services/${encodeURIComponent(serviceName)}/action`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'restart' }),
+    });
+    const body = await res.json();
+    if (body.ok) toast(`${serviceName} restarted`);
+    else toast(`Failed to restart ${serviceName}: ${(body.stderr || body.error || 'unknown error').split('\n')[0]}`, true);
+  } catch (err) {
+    toast(err.message, true);
+  }
+  // Give the service a moment to settle, then refresh the list so the
+  // status column reflects the change (if the drawer is still open on it).
+  setTimeout(() => activeDeviceId === deviceId && loadServices(deviceId), 1500);
+}
 
 $('#serviceFilter').addEventListener('input', applyServiceFilter);
 $('#refreshServicesBtn').addEventListener('click', () => activeDeviceId && loadServices(activeDeviceId));
+
+// ---------------------------------------------------------------- device actions
+let customCommands = [];
+
+async function loadCustomCommands() {
+  try {
+    const res = await fetch('/api/commands');
+    customCommands = await res.json();
+  } catch {
+    customCommands = [];
+  }
+  renderCustomCommandButtons();
+}
+
+function renderCustomCommandButtons() {
+  const container = $('#customCommandButtons');
+  $('#noCommandsNote').hidden = customCommands.length > 0;
+  container.innerHTML = customCommands
+    .map((c) => `<button class="btn btn-ghost btn-sm custom-command-btn" data-id="${escapeHtml(c.id)}" title="${escapeHtml(c.command)}">${escapeHtml(c.label)}</button>`)
+    .join('');
+}
+
+function showActionsOutput(title, body) {
+  $('#actionsOutput').hidden = false;
+  $('#actionsOutputTitle').textContent = title;
+  $('#actionsOutputBody').textContent = body;
+}
+$('#actionsOutputClose').addEventListener('click', () => ($('#actionsOutput').hidden = true));
+
+// Shared runner for reboot/shutdown/custom commands: confirm, POST, then
+// show whatever combination of note/stdout/stderr/error came back. Used
+// for anything that returns {ok, code, stdout, stderr} from the backend.
+async function runDeviceAction(url, { confirmMessage, title, body }) {
+  if (confirmMessage && !confirm(confirmMessage)) return;
+  showActionsOutput(title, 'Running\u2026');
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: body || '{}',
+    });
+    const result = await res.json();
+    const lines = [];
+    if (result.note) lines.push(result.note);
+    if (result.stdout) lines.push(result.stdout.trim());
+    if (result.stderr) lines.push('--- stderr ---\n' + result.stderr.trim());
+    if (result.error && !result.note) lines.push('Error: ' + result.error);
+    if (typeof result.code === 'number') lines.push(`(exit code ${result.code})`);
+    if (!lines.length) lines.push(result.ok ? '(no output)' : 'Failed \u2014 no further detail returned');
+    showActionsOutput(title, lines.join('\n\n'));
+  } catch (err) {
+    showActionsOutput(title, `Request failed: ${err.message}`);
+  }
+}
+
+$('#rebootBtn').addEventListener('click', () => {
+  if (!activeDeviceId) return;
+  const device = devices.find((d) => d.id === activeDeviceId);
+  runDeviceAction(`${API}/${activeDeviceId}/actions/reboot`, {
+    confirmMessage: `Reboot "${device?.name}" now? It will be briefly unreachable.`,
+    title: 'Reboot',
+  });
+});
+
+$('#shutdownBtn').addEventListener('click', () => {
+  if (!activeDeviceId) return;
+  const device = devices.find((d) => d.id === activeDeviceId);
+  runDeviceAction(`${API}/${activeDeviceId}/actions/shutdown`, {
+    confirmMessage: `Shut down "${device?.name}" now? You'll need physical or remote-power access to turn it back on.`,
+    title: 'Shutdown',
+  });
+});
+
+$('#customCommandButtons').addEventListener('click', (e) => {
+  const btn = e.target.closest('.custom-command-btn');
+  if (!btn || !activeDeviceId) return;
+  const cmd = customCommands.find((c) => c.id === btn.dataset.id);
+  if (!cmd) return;
+  const device = devices.find((d) => d.id === activeDeviceId);
+  runDeviceAction(`${API}/${activeDeviceId}/actions/run-command`, {
+    confirmMessage: `Run on "${device?.name}"?\n\n${cmd.command}`,
+    title: cmd.label,
+    body: JSON.stringify({ commandId: cmd.id }),
+  });
+});
 
 async function loadPorts(deviceId) {
   const listEl = $('#portsList');
@@ -1167,5 +1437,6 @@ async function loadVersion() {
 loadVersion();
 loadGroups();
 loadAlertConfig();
+loadCustomCommands();
 loadDevices();
 connectStatsSocket();

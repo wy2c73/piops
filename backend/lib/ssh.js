@@ -41,11 +41,11 @@ function connect(device) {
   });
 }
 
-function exec(conn, command) {
+function exec(conn, command, timeoutMs = EXEC_TIMEOUT_MS) {
   return new Promise((resolve, reject) => {
     let stdout = '';
     let stderr = '';
-    const timer = setTimeout(() => reject(new Error('Command timed out')), EXEC_TIMEOUT_MS);
+    const timer = setTimeout(() => reject(new Error('Command timed out')), timeoutMs);
     conn.exec(command, (err, stream) => {
       if (err) {
         clearTimeout(timer);
@@ -71,9 +71,26 @@ function exec(conn, command) {
 // actually goes over the exec channel is one compact, quote-free line.
 // This sidesteps an entire class of issues where multi-line or heavily
 // escaped commands get mangled somewhere between here and the remote shell.
-function execScript(conn, script) {
+function execScript(conn, script, timeoutMs) {
   const encoded = Buffer.from(script, 'utf8').toString('base64');
-  return exec(conn, `echo '${encoded}' | base64 -d | sh`);
+  return exec(conn, `echo '${encoded}' | base64 -d | sh`, timeoutMs);
+}
+
+const ACTION_TIMEOUT_MS = 60000; // quick actions / custom commands can take longer than a stats poll
+
+// One-off command execution for quick actions and custom commands: open a
+// connection, run the command, close it, return {code, stdout, stderr}.
+// Note on reboot/shutdown specifically: the connection can drop before a
+// clean exit code comes back, simply because the box actually went down --
+// callers should treat a connection error here as "possibly succeeded,
+// not necessarily a failure" for those two commands.
+async function runCommand(device, command, timeoutMs = ACTION_TIMEOUT_MS) {
+  const conn = await connect(device);
+  try {
+    return await execScript(conn, command, timeoutMs);
+  } finally {
+    conn.end();
+  }
 }
 
 // One round trip: gather hostname, uptime, load, memory, disk, temp and a
@@ -251,4 +268,4 @@ async function listPorts(device) {
   }
 }
 
-module.exports = { connect, exec, execScript, collectStats, listServices, listPorts, testConnection };
+module.exports = { connect, exec, execScript, runCommand, collectStats, listServices, listPorts, testConnection };

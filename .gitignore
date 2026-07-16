@@ -3,4 +3,5 @@ node_modules/
 **/data/.key
 **/data/groups.json
 **/data/alerts.json
+**/data/customCommands.json
 *.log

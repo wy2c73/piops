@@ -10,6 +10,7 @@ const { encrypt, decrypt } = require('./crypto');
 const DATA_PATH = path.join(__dirname, '..', 'data', 'devices.json');
 const GROUPS_PATH = path.join(__dirname, '..', 'data', 'groups.json');
 const ALERTS_PATH = path.join(__dirname, '..', 'data', 'alerts.json');
+const COMMANDS_PATH = path.join(__dirname, '..', 'data', 'customCommands.json');
 
 function load() {
   if (!fs.existsSync(DATA_PATH)) return [];
@@ -98,7 +99,57 @@ function remove(id) {
   return next.length !== devices.length;
 }
 
-module.exports = { list, get, getWithSecret, create, update, remove, listGroups, addGroup, removeGroup, loadAlertConfig, saveAlertConfig };
+module.exports = {
+  list, get, getWithSecret, create, update, remove,
+  listGroups, addGroup, removeGroup,
+  loadAlertConfig, saveAlertConfig,
+  listCommands, getCommand, createCommand, removeCommand,
+};
+
+// ---- Custom quick commands ----
+// A global, curated list of {id, label, command} shown as buttons on every
+// device's Actions tab. Deliberately global rather than per-device: these
+// are almost always fleet-wide maintenance actions (restart Docker, update
+// packages, clear logs...), and keeping one list avoids re-defining the
+// same command on every device. Execution always looks a command up by id
+// from this list rather than accepting raw command text from a request, so
+// only commands the person has actually configured here can ever run.
+
+function loadCommands() {
+  if (!fs.existsSync(COMMANDS_PATH)) return [];
+  try {
+    return JSON.parse(fs.readFileSync(COMMANDS_PATH, 'utf8'));
+  } catch {
+    return [];
+  }
+}
+
+function saveCommands(commands) {
+  fs.mkdirSync(path.dirname(COMMANDS_PATH), { recursive: true });
+  fs.writeFileSync(COMMANDS_PATH, JSON.stringify(commands, null, 2), { mode: 0o600 });
+}
+
+function listCommands() {
+  return loadCommands();
+}
+
+function getCommand(id) {
+  return loadCommands().find((c) => c.id === id) || null;
+}
+
+function createCommand({ label, command }) {
+  const commands = loadCommands();
+  const entry = { id: uuidv4(), label, command };
+  commands.push(entry);
+  saveCommands(commands);
+  return entry;
+}
+
+function removeCommand(id) {
+  const commands = loadCommands().filter((c) => c.id !== id);
+  saveCommands(commands);
+  return commands;
+}
 
 // ---- Alert configuration ----
 // A single config object (not per-device) controlling whether/how the

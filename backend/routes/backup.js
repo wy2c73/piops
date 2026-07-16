@@ -36,6 +36,7 @@ router.post('/export', (req, res) => {
     devices,
     groups: store.listGroups(),
     alerts: store.loadAlertConfig(),
+    commands: store.listCommands(),
     settings: clientSettings || null,
   });
 
@@ -83,6 +84,15 @@ router.post('/import', async (req, res) => {
   newIds.forEach((id) => poller.refreshDevice(id)); // don't block the response on these
   (bundle.groups || []).forEach((name) => store.addGroup(name));
   if (bundle.alerts) store.saveAlertConfig(bundle.alerts);
+
+  const existingCommands = new Set(store.listCommands().map((c) => `${c.label}::${c.command}`));
+  (bundle.commands || []).forEach((c) => {
+    const key = `${c.label}::${c.command}`;
+    if (!existingCommands.has(key)) {
+      store.createCommand({ label: c.label, command: c.command });
+      existingCommands.add(key);
+    }
+  });
 
   res.json({ imported, skipped, settings: bundle.settings || null });
 });

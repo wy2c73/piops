@@ -16,6 +16,8 @@ dashboard reaches out over SSH to collect stats and to open interactive terminal
 - **Groups** — manage a curated list of group names in Settings; the Add/Edit device form uses a dropdown fed from that list
 - **Alerts** — webhook notifications (Discord, Slack, ntfy.sh, or generic JSON) when a device goes offline/recovers, a Pi reports under-voltage or throttling, or CPU/memory/disk/temperature crosses a threshold you set
 - **Under-voltage / throttling indicator** — reads `vcgencmd get_throttled` on Raspberry Pi devices and flags active or historical power/thermal issues right on the card
+- **Fleet actions** — reboot, shut down, or restart a specific service, all with a confirmation dialog; define your own custom quick commands in Settings that show up as buttons on every device
+- **Bulk actions** — select multiple devices to assign a group, export to CSV, or delete them all at once
 - **In-browser SSH terminal** — click "Terminal" on any card for a real xterm.js session proxied over SSH
 - **"Open in local terminal"** — hands off to your system's default `ssh://` handler, or launch PuTTY / WinSCP directly (pick one in Settings; see "Windows integration" below)
 - **Settings** — Metric/Imperial and °C/°F display preference, view mode, local terminal app, saved per-browser
@@ -168,6 +170,30 @@ In Settings, turn Alerts on, paste a webhook URL, and pick the matching format:
 
 Use "Send test alert" to confirm it's wired up correctly before relying on it.
 
+## Setting up quick actions
+
+Reboot, Shutdown, service restarts, and custom commands all run over the
+same SSH connection as everything else, using `sudo -n` (non-interactive
+sudo -- it fails immediately with a clear error instead of hanging if a
+password would actually be required). For these to work, add a sudoers
+rule on each device you want to control, scoped to only what you need:
+
+```bash
+# On the monitored Pi, run: sudo visudo -f /etc/sudoers.d/pi-fleet-dashboard
+# and add a line like this (replace "pi" with the account this dashboard uses):
+pi ALL=(ALL) NOPASSWD: /usr/sbin/reboot, /usr/sbin/shutdown, /usr/bin/systemctl restart *, /usr/bin/systemctl start *, /usr/bin/systemctl stop *
+```
+
+Widen or narrow that list to match what you actually want this account able
+to do. Custom commands you define in Settings need whatever sudo access
+their own command line requires -- add rules for those specifically rather
+than granting blanket `NOPASSWD: ALL`, which would let anything reachable
+through this dashboard run as root unrestricted.
+
+Without a matching sudoers rule, these actions will fail with a clear
+"a password is required" error rather than hanging -- that's expected until
+you add the rule above.
+
 ## How it works
 
 - `backend/lib/ssh.js` opens a short-lived SSH connection per poll, runs a single
@@ -202,11 +228,19 @@ Use "Send test alert" to confirm it's wired up correctly before relying on it.
   to disk, but they do pass through the browser and this server's memory in
   plaintext during that request — same trust model as pasting them into any admin
   tool you self-host.
+- Reboot/shutdown/service-restart/custom-command actions mean anyone with access
+  to this dashboard can run whatever those sudoers rules and custom commands
+  allow, on every device with a matching entry. This is unchanged in spirit from
+  the terminal feature (both ultimately run as whatever the SSH account can do),
+  but it's worth re-reading "no built-in login" above with that in mind if you're
+  considering exposing this beyond a trusted LAN.
 
 ## What's next
 
-This covers device management, live stats, service status, and SSH terminals —
-the core of what you asked for. Natural follow-ups if you want them later:
-historical charts (persist stats to disk/SQLite instead of memory-only), alerting
-(e.g. push a notification when a Pi goes offline or disk fills up), and
-authentication/login for the dashboard itself.
+This now covers device management, live stats, service/port visibility, SSH
+terminals, alerting, Pi-specific health signals, and fleet actions. The two
+biggest things still on the table if you want them later: historical charts
+(persisting stats to disk/SQLite instead of memory-only) and
+authentication/login for the dashboard itself — worth prioritizing that last
+one in particular if you ever plan to expose this beyond a trusted LAN, given
+how much this dashboard can now do to your fleet.

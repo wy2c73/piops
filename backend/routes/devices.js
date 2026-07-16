@@ -2,7 +2,10 @@ const express = require('express');
 const router = express.Router();
 const store = require('../lib/store');
 const poller = require('../poller');
-const { testConnection, listServices, listPorts } = require('../lib/ssh');
+const { testConnection, listServices, listPorts, runCommand } = require('../lib/ssh');
+
+const SERVICE_NAME_PATTERN = /^[a-zA-Z0-9@._-]+\.service$/;
+const SERVICE_ACTIONS = new Set(['start', 'stop', 'restart']);
 
 // List devices merged with their latest cached stats.
 router.get('/', (req, res) => {
@@ -81,6 +84,80 @@ router.get('/:id/ports', async (req, res) => {
     res.json(ports);
   } catch (err) {
     res.status(502).json({ error: err.message });
+  }
+});
+
+// ---- Quick actions ----
+// All of these require the device's SSH account to have passwordless sudo
+// (`sudo -n ...`) for the specific command -- `-n` fails fast with a clear
+// error instead of hanging if a password would actually be required.
+
+router.post('/:id/actions/reboot', async (req, res) => {
+  try {
+    const device = store.getWithSecret(req.params.id);
+    if (!device) return res.status(404).json({ error: 'Device not found' });
+    const result = await runCommand(device, 'sudo -n reboot');
+    res.json({ ok: result.code === 0, ...result });
+  } catch (err) {
+    // A successful reboot can itself cause the connection to drop before a
+    // clean response comes back -- that's not necessarily a failure.
+    res.status(502).json({
+      ok: false,
+      error: err.message,
+      note: 'The connection may have dropped because the reboot actually succeeded. Give it a minute and check the device status.',
+    });
+  }
+});
+
+router.post('/:id/actions/shutdown', async (req, res) => {
+  try {
+    const device = store.getWithSecret(req.params.id);
+    if (!device) return res.status(404).json({ error: 'Device not found' });
+    const result = await runCommand(device, 'sudo -n shutdown -h now');
+    res.json({ ok: result.code === 0, ...result });
+  } catch (err) {
+    res.status(502).json({
+      ok: false,
+      error: err.message,
+      note: 'The connection may have dropped because the shutdown actually succeeded.',
+    });
+  }
+});
+
+router.post('/:id/services/:name/action', async (req, res) => {
+  const action = req.body?.action;
+  const serviceName = req.params.name;
+  if (!SERVICE_ACTIONS.has(action)) {
+    return res.status(400).json({ error: 'action must be start, stop, or restart' });
+  }
+  if (!SERVICE_NAME_PATTERN.test(serviceName)) {
+    return res.status(400).json({ error: 'Invalid service name' });
+  }
+  try {
+    const device = store.getWithSecret(req.params.id);
+    if (!device) return res.status(404).json({ error: 'Device not found' });
+    const result = await runCommand(device, `sudo -n systemctl ${action} '${serviceName}'`);
+    res.json({ ok: result.code === 0, ...result });
+  } catch (err) {
+    res.status(502).json({ ok: false, error: err.message });
+  }
+});
+
+// Only ever runs a command that already exists in the curated custom
+// commands list (see routes/commands.js) -- never raw text from the
+// request body. That list is itself deliberately powerful (arbitrary
+// shell), but requiring it to be pre-defined in Settings means this
+// endpoint can't be used to run something that hasn't been configured.
+router.post('/:id/actions/run-command', async (req, res) => {
+  const cmd = store.getCommand(req.body?.commandId);
+  if (!cmd) return res.status(404).json({ error: 'Command not found' });
+  try {
+    const device = store.getWithSecret(req.params.id);
+    if (!device) return res.status(404).json({ error: 'Device not found' });
+    const result = await runCommand(device, cmd.command);
+    res.json({ ok: result.code === 0, ...result });
+  } catch (err) {
+    res.status(502).json({ ok: false, error: err.message });
   }
 });
 

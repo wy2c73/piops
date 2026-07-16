@@ -1,5 +1,33 @@
 # Changelog
 
+## 1.5.0
+
+- **Fleet actions**: new "Actions" tab in the device detail view with
+  Reboot and Shutdown buttons (confirmation required), plus a "Restart"
+  button on every row in the Services tab. All run over the existing SSH
+  connection using `sudo -n` (fails fast with a clear error instead of
+  hanging if a password would be required) &mdash; see the new "Setting up
+  quick actions" section in the README for the sudoers config needed.
+- **Custom quick commands**: define reusable commands in Settings (label +
+  shell command) that show up as buttons on every device's Actions tab.
+  Each run still requires confirming the exact command text for that
+  specific device before it executes. Commands are only ever run by
+  looking up a pre-defined ID server-side, never from raw text in a
+  request. Included in backup export/import.
+- **Bulk actions**: selection checkboxes on cards and list rows, a "Select
+  all" toggle, and a bulk action bar to assign a group, export the
+  selection to CSV, or delete multiple devices at once. Bulk CSV export
+  is the reverse of CSV import for reviewing/documenting your fleet, but
+  intentionally excludes credentials (the API never returns them) &mdash;
+  re-add those before importing the file elsewhere.
+- Verified reboot/shutdown/service-restart/custom-command execution
+  end-to-end against a real local SSH server with scoped passwordless
+  sudo, including confirming a disallowed command is correctly rejected
+  and a service-name injection attempt is blocked before it can execute.
+- Fixed a bug (caught during that testing) where the reboot/shutdown
+  endpoints reported success unconditionally regardless of the command's
+  actual exit code.
+
 ## 1.4.0
 
 - **Alerting**: configurable webhook notifications (Discord, Slack,
