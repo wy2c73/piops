@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.5.3
+
+- Fixed a regression from 1.5.2: the Actions tab's fix used
+  `display: flex !important` on an ID selector, which beats
+  `.tab-panel[hidden] { display: none !important }` regardless of the
+  `hidden` attribute (ID selectors always outrank class/attribute
+  selectors, even between two `!important` declarations) -- so the
+  Actions tab content was rendering underneath every other tab
+  regardless of which was actually active. Fixed by scoping the rule to
+  `:not([hidden])` so it's mutually exclusive with the hidden-state rule
+  by construction, instead of trying to out-specificity it.
+- Fixed backup restore dropping a custom command's configured timeout
+  back to the 120s default -- the restore path wasn't passing
+  `timeoutSec` through when recreating commands from the backup file.
+
 ## 1.5.2
 
 - Fixed port chips in the Ports tab rendering as tall, stretched columns

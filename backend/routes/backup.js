@@ -89,7 +89,7 @@ router.post('/import', async (req, res) => {
   (bundle.commands || []).forEach((c) => {
     const key = `${c.label}::${c.command}`;
     if (!existingCommands.has(key)) {
-      store.createCommand({ label: c.label, command: c.command });
+      store.createCommand({ label: c.label, command: c.command, timeoutSec: c.timeoutSec });
       existingCommands.add(key);
     }
   });
