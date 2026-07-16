@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.3.0
+
+- Reworked the device detail drawer's layout: it previously nested two
+  independent scrollbars (the whole drawer, and the services list inside
+  it) whenever content got tall. Now the header, stats, and tabs stay
+  fixed and only the active tab's list scrolls &mdash; a single scrollbar.
+- Services list is now a sortable table: click "Name" or "Status" to sort
+  (click again to reverse), with a clear active-sort indicator. Status
+  sorts group active services first, then failed, then inactive.
+
 ## 1.2.5
 
 - Fixed restored device groups not appearing after Settings &rarr; Restore

@@ -802,32 +802,76 @@ async function loadServices(deviceId) {
 }
 
 let currentServices = [];
+// Sort key is 'name' or 'active' (the underlying systemd active-state
+// field, e.g. active/failed/inactive) -- "Status" in the header sorts by
+// that. dir 1 = ascending, -1 = descending.
+let serviceSort = { key: 'name', dir: 1 };
+
 function renderServices(services) {
   currentServices = services;
   applyServiceFilter();
 }
 
+function sortServices(list) {
+  const { key, dir } = serviceSort;
+  return [...list].sort((a, b) => {
+    const av = (a[key] || '').toLowerCase();
+    const bv = (b[key] || '').toLowerCase();
+    if (av < bv) return -1 * dir;
+    if (av > bv) return 1 * dir;
+    return a.name.localeCompare(b.name); // stable tie-break so equal-status rows don't jump around
+  });
+}
+
+function sortArrow(key) {
+  if (serviceSort.key !== key) return '';
+  return `<span class="sort-arrow">${serviceSort.dir === 1 ? '\u25B2' : '\u25BC'}</span>`;
+}
+
 function applyServiceFilter() {
   const q = $('#serviceFilter').value.trim().toLowerCase();
-  const filtered = currentServices.filter((s) => !q || s.name.toLowerCase().includes(q));
+  const filtered = sortServices(currentServices.filter((s) => !q || s.name.toLowerCase().includes(q)));
   const listEl = $('#servicesList');
-  if (!filtered.length) {
-    listEl.innerHTML = '<p class="muted">No matching services.</p>';
-    return;
-  }
-  listEl.innerHTML = filtered
-    .map(
-      (s) => `
-    <div class="service-row">
-      <div>
+
+  const rows = filtered.length
+    ? filtered
+        .map(
+          (s) => `
+    <tr class="service-row">
+      <td>
         <div class="service-name">${escapeHtml(s.name)}</div>
         <div class="service-desc">${escapeHtml(s.description || '')}</div>
-      </div>
-      <span class="service-state ${escapeHtml(s.active)}">${escapeHtml(s.sub)}</span>
-    </div>`
-    )
-    .join('');
+      </td>
+      <td><span class="service-state ${escapeHtml(s.active)}">${escapeHtml(s.sub)}</span></td>
+    </tr>`
+        )
+        .join('')
+    : '<tr><td colspan="2"><p class="muted" style="padding: 4px 0;">No matching services.</p></td></tr>';
+
+  listEl.innerHTML = `
+    <table class="services-table">
+      <thead>
+        <tr>
+          <th data-sort="name" class="${serviceSort.key === 'name' ? 'sorted' : ''}">Name${sortArrow('name')}</th>
+          <th data-sort="active" class="${serviceSort.key === 'active' ? 'sorted' : ''}">Status${sortArrow('active')}</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>`;
 }
+
+// Event delegation: the table gets fully rebuilt on every render, so bind
+// the sort-header click handler once on the stable container instead of
+// re-attaching it after each render.
+$('#servicesList').addEventListener('click', (e) => {
+  const th = e.target.closest('th[data-sort]');
+  if (!th) return;
+  const key = th.dataset.sort;
+  if (serviceSort.key === key) serviceSort.dir *= -1;
+  else serviceSort = { key, dir: 1 };
+  applyServiceFilter();
+});
+
 $('#serviceFilter').addEventListener('input', applyServiceFilter);
 $('#refreshServicesBtn').addEventListener('click', () => activeDeviceId && loadServices(activeDeviceId));
 

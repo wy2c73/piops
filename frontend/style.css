@@ -256,13 +256,14 @@ button { font-family: inherit; }
   background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
   width: 100%; max-width: 460px; max-height: 88vh; display: flex; flex-direction: column;
 }
-.modal-wide { max-width: 680px; }
+.modal-wide { max-width: 680px; height: 78vh; }
 .modal-terminal { max-width: 900px; height: 88vh; }
 
 /* Author CSS setting `display` on an element overrides the browser's
    built-in [hidden] behavior, so this has to be spelled out explicitly --
    otherwise every modal renders on top of the page at all times. */
 .modal-backdrop[hidden] { display: none !important; }
+.tab-panel[hidden] { display: none !important; }
 
 .modal-header {
   display: flex; justify-content: space-between; align-items: center;
@@ -276,6 +277,25 @@ button { font-family: inherit; }
 .modal-close:hover { color: var(--text); }
 
 .modal-body { padding: 18px 20px; overflow-y: auto; }
+
+/* The detail drawer (Add/Edit and Settings use plain .modal-body scrolling
+   as a whole; this one is taller and has its own inner list, so instead of
+   two nested scrollbars, only the tab's list scrolls -- the header, stats,
+   and tabs stay put. */
+.modal-wide .modal-body {
+  display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden;
+}
+.modal-wide .detail-stats,
+.modal-wide .detail-tabs { flex-shrink: 0; }
+.modal-wide .tab-panel {
+  flex: 1; min-height: 0; overflow: hidden;
+  display: flex; flex-direction: column;
+}
+.modal-wide .services-toolbar { flex-shrink: 0; }
+.modal-wide .services-list,
+.modal-wide .ports-list {
+  flex: 1; min-height: 0; overflow-y: auto;
+}
 
 .form-row { margin-bottom: 14px; display: flex; flex-direction: column; gap: 6px; }
 .form-row label { font-size: 12px; color: var(--text-muted); font-family: var(--mono); }
@@ -337,13 +357,26 @@ textarea { resize: vertical; font-family: var(--mono); }
 .tab-btn.active { color: var(--text); border-bottom-color: var(--accent); }
 
 .services-toolbar { display: flex; gap: 8px; margin-bottom: 10px; }
-.services-list { max-height: 340px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius); }
+.services-list { overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius); }
 
-.service-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 12.5px; align-items: center; }
-.service-row:last-child { border-bottom: none; }
-.service-name { font-family: var(--mono); }
-.service-desc { color: var(--text-muted); font-size: 11px; }
-.service-state { font-family: var(--mono); font-size: 10.5px; padding: 2px 8px; border-radius: 3px; white-space: nowrap; }
+.services-table { width: 100%; border-collapse: collapse; font-size: 12.5px; table-layout: fixed; }
+.services-table thead { position: sticky; top: 0; background: var(--surface); z-index: 1; }
+.services-table th {
+  text-align: left; padding: 8px 12px; font-family: var(--mono); font-size: 10.5px;
+  text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);
+  border-bottom: 1px solid var(--border); cursor: pointer; user-select: none;
+}
+.services-table th:hover { color: var(--text); }
+.services-table th.sorted { color: var(--accent); }
+.services-table th:first-child { width: 70%; }
+.services-table th:last-child { width: 30%; }
+.sort-arrow { font-size: 9px; margin-left: 3px; }
+
+.service-row td { padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 12.5px; vertical-align: middle; }
+.service-row:last-child td { border-bottom: none; }
+.service-name { font-family: var(--mono); overflow-wrap: anywhere; }
+.service-desc { color: var(--text-muted); font-size: 11px; overflow-wrap: anywhere; }
+.service-state { font-family: var(--mono); font-size: 10.5px; padding: 2px 8px; border-radius: 3px; white-space: nowrap; display: inline-block; }
 .service-state.active { background: rgba(61, 220, 132, 0.12); color: var(--good); }
 .service-state.inactive, .service-state.dead { background: rgba(122, 130, 150, 0.15); color: var(--text-muted); }
 .service-state.failed { background: rgba(242, 73, 92, 0.12); color: var(--bad); }
