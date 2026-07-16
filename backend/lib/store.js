@@ -50,8 +50,15 @@ function get(id) {
 
 function create(input) {
   const devices = load();
+  // Preserve the original ID when restoring from a backup (so a saved
+  // card-order reference still resolves after a fresh-install restore),
+  // as long as it looks like a real UUID and isn't already in use.
+  const requestedId =
+    typeof input.id === 'string' && /^[0-9a-f-]{36}$/i.test(input.id) && !devices.some((d) => d.id === input.id)
+      ? input.id
+      : uuidv4();
   const device = {
-    id: uuidv4(),
+    id: requestedId,
     name: input.name,
     host: input.host,
     port: input.port ? Number(input.port) : 22,

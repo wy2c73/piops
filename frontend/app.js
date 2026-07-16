@@ -218,7 +218,7 @@ $('#exportBtn').addEventListener('click', async () => {
     const res = await fetch('/api/backup/export', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ passphrase, clientSettings: settings }),
+      body: JSON.stringify({ passphrase, clientSettings: settings, order: orderIds }),
     });
     const body = await res.json();
     if (!res.ok) throw new Error(body.error || 'Export failed');
@@ -278,6 +278,11 @@ $('#importBtn').addEventListener('click', async () => {
       settings = { ...defaultSettings, ...body.settings };
       saveSettings();
       applySettingsUI();
+    }
+
+    if (body.order) {
+      orderIds = body.order;
+      saveOrder();
     }
 
     fileInput.value = '';

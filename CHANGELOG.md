@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.5.4
+
+- Fixed the Actions tab output panel still getting cut off after the
+  1.5.2/1.5.3 fixes -- there was a second, nested scroll region
+  (`#actionsOutputBody` had its own `max-height`/`overflow-y`, inside the
+  already-scrollable outer tab), the same double-scrollbar pattern
+  originally fixed in the Services tab. Collapsed to a single scroll
+  region on the outer container, same as Services/Ports.
+- Fixed drag-to-reorder card order not surviving backup export/import.
+  Two things were needed: card order is now included in the backup
+  bundle, and restored devices keep their **original ID** instead of
+  getting a fresh one on restore -- otherwise an order reference would
+  silently fail to match anything after a fresh-install restore, since
+  every device would get a new random ID. Verified end-to-end: export a
+  specific order, wipe the install completely, restore, and confirm both
+  the device IDs and the order came back exactly as exported.
+
 ## 1.5.3
 
 - Fixed a regression from 1.5.2: the Actions tab's fix used

@@ -11,7 +11,7 @@ const MIN_PASSPHRASE_LEN = 8;
 // with a key derived from a passphrase the user supplies here -- not the
 // server's own at-rest key, so the resulting file is portable.
 router.post('/export', (req, res) => {
-  const { passphrase, clientSettings } = req.body || {};
+  const { passphrase, clientSettings, order } = req.body || {};
   if (!passphrase || passphrase.length < MIN_PASSPHRASE_LEN) {
     return res.status(400).json({ error: `Passphrase must be at least ${MIN_PASSPHRASE_LEN} characters` });
   }
@@ -19,6 +19,7 @@ router.post('/export', (req, res) => {
   const devices = store.list().map((d) => {
     const full = store.getWithSecret(d.id);
     return {
+      id: full.id, // preserved on restore so a saved card order still resolves, even into a fresh install
       name: full.name,
       host: full.host,
       port: full.port,
@@ -38,6 +39,7 @@ router.post('/export', (req, res) => {
     alerts: store.loadAlertConfig(),
     commands: store.listCommands(),
     settings: clientSettings || null,
+    order: order || null,
   });
 
   const blob = encryptWithPassphrase(passphrase, bundle);
@@ -94,7 +96,7 @@ router.post('/import', async (req, res) => {
     }
   });
 
-  res.json({ imported, skipped, settings: bundle.settings || null });
+  res.json({ imported, skipped, settings: bundle.settings || null, order: bundle.order || null });
 });
 
 module.exports = router;
