@@ -230,6 +230,7 @@ $('#importBtn').addEventListener('click', async () => {
     fileInput.value = '';
     $('#importPassphrase').value = '';
     await loadDevices();
+    await loadGroups();
     refreshVisibleUnits();
   } catch (err) {
     resultEl.textContent = err.message;

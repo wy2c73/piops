@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.2.5
+
+- Fixed restored device groups not appearing after Settings &rarr; Restore
+  from backup. The backend was already restoring them correctly (since
+  1.2.0); the frontend just wasn't re-fetching the groups list afterward,
+  so they stayed invisible until a page reload.
+- Renamed the view-toggle buttons from "Cards"/"Details" to "Card View"/
+  "List View"
+
 ## 1.2.4
 
 - Fixed the Terminal button wrapping onto two lines in the Details table
