@@ -1,6 +1,6 @@
 {
   "name": "pi-fleet-dashboard-backend",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "description": "Pi Fleet Dashboard \u2014 agentless SSH-based monitoring dashboard for a Raspberry Pi fleet",
   "main": "server.js",
   "type": "commonjs",

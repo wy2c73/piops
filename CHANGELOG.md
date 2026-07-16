@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.5.2
+
+- Fixed port chips in the Ports tab rendering as tall, stretched columns
+  instead of compact chips (a flexbox `align-items: stretch` default,
+  triggered once the container became `flex: 1` for the single-scrollbar
+  fix in 1.3.0).
+- Fixed the Actions tab's output panel getting cut off at the bottom of
+  the drawer instead of scrolling into view. The previous rule only
+  overrode `overflow-y` via an ID selector while other required
+  properties came from a separate class rule -- replaced with one
+  self-contained, `!important`-forced rule so it can't silently lose to
+  the wrong side of a cascade tie again.
+
 ## 1.5.1
 
 - Custom commands now have a configurable timeout (5s&ndash;30min, default

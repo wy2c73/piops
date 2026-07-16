@@ -322,7 +322,10 @@ button { font-family: inherit; }
 .modal-wide .ports-list {
   flex: 1; min-height: 0; overflow-y: auto;
 }
-.modal-wide #tabActions { overflow-y: auto; }
+.modal-wide #tabActions {
+  flex: 1 !important; min-height: 0 !important; overflow-y: auto !important; overflow-x: hidden !important;
+  display: flex !important; flex-direction: column !important;
+}
 
 .form-row { margin-bottom: 14px; display: flex; flex-direction: column; gap: 6px; }
 .form-row label { font-size: 12px; color: var(--text-muted); font-family: var(--mono); }
@@ -379,7 +382,7 @@ textarea { resize: vertical; font-family: var(--mono); }
 }
 .command-remove:hover { color: var(--bad); }
 
-.ports-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.ports-list { display: flex; flex-wrap: wrap; align-content: flex-start; align-items: flex-start; gap: 8px; }
 .port-chip {
   display: inline-flex; align-items: center; gap: 6px;
   background: var(--surface-raised); border: 1px solid var(--border); border-radius: 4px;
