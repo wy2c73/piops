@@ -53,6 +53,12 @@ app.get('*', (req, res) => {
 });
 
 const server = http.createServer(app);
+// Node's http server kills any request still open after 5 minutes by
+// default (server.requestTimeout). Custom quick commands can legitimately
+// run longer than that (e.g. a full package upgrade), so disable it here --
+// the per-command timeout in routes/devices.js is the real limit instead.
+server.requestTimeout = 0;
+server.headersTimeout = 0;
 
 // Two websocket endpoints on the same HTTP server, routed by path.
 const statsWss = new WebSocketServer({ noServer: true });

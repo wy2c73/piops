@@ -137,9 +137,14 @@ function getCommand(id) {
   return loadCommands().find((c) => c.id === id) || null;
 }
 
-function createCommand({ label, command }) {
+function createCommand({ label, command, timeoutSec }) {
   const commands = loadCommands();
-  const entry = { id: uuidv4(), label, command };
+  const entry = {
+    id: uuidv4(),
+    label,
+    command,
+    timeoutSec: Number(timeoutSec) > 0 ? Number(timeoutSec) : 120, // default well beyond the 60s used for reboot/shutdown/service actions
+  };
   commands.push(entry);
   saveCommands(commands);
   return entry;

@@ -371,6 +371,7 @@ textarea { resize: vertical; font-family: var(--mono); }
   padding: 8px 10px;
 }
 .command-label { font-size: 13px; font-weight: 600; }
+.command-timeout { font-size: 10px; font-weight: 400; color: var(--text-dim); font-family: var(--mono); }
 .command-text { font-family: var(--mono); font-size: 11px; color: var(--text-muted); margin-top: 2px; word-break: break-word; }
 .command-remove {
   background: none; border: none; color: var(--text-dim); cursor: pointer;

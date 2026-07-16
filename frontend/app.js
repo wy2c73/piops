@@ -548,7 +548,7 @@ function renderCommandList() {
       (c) => `
     <div class="command-row">
       <div>
-        <div class="command-label">${escapeHtml(c.label)}</div>
+        <div class="command-label">${escapeHtml(c.label)} <span class="command-timeout">${c.timeoutSec || 120}s timeout</span></div>
         <div class="command-text">${escapeHtml(c.command)}</div>
       </div>
       <button type="button" class="command-remove" title="Remove command" data-id="${escapeHtml(c.id)}">&times;</button>
@@ -560,6 +560,7 @@ function renderCommandList() {
 $('#addCommandBtn').addEventListener('click', async () => {
   const label = $('#newCommandLabel').value.trim();
   const command = $('#newCommandText').value.trim();
+  const timeoutSec = Number($('#newCommandTimeout').value) || 120;
   if (!label || !command) {
     toast('Both a label and a command are required', true);
     return;
@@ -568,11 +569,12 @@ $('#addCommandBtn').addEventListener('click', async () => {
     const res = await fetch('/api/commands', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ label, command }),
+      body: JSON.stringify({ label, command, timeoutSec }),
     });
     if (!res.ok) throw new Error((await res.json()).error || 'Could not add command');
     $('#newCommandLabel').value = '';
     $('#newCommandText').value = '';
+    $('#newCommandTimeout').value = 120;
     await loadCustomCommands();
     renderCommandList();
   } catch (err) {
@@ -1237,7 +1239,7 @@ function renderCustomCommandButtons() {
   const container = $('#customCommandButtons');
   $('#noCommandsNote').hidden = customCommands.length > 0;
   container.innerHTML = customCommands
-    .map((c) => `<button class="btn btn-ghost btn-sm custom-command-btn" data-id="${escapeHtml(c.id)}" title="${escapeHtml(c.command)}">${escapeHtml(c.label)}</button>`)
+    .map((c) => `<button class="btn btn-ghost btn-sm custom-command-btn" data-id="${escapeHtml(c.id)}" title="${escapeHtml(c.command)} (times out after ${c.timeoutSec || 120}s)">${escapeHtml(c.label)}</button>`)
     .join('');
 }
 
@@ -1251,9 +1253,9 @@ $('#actionsOutputClose').addEventListener('click', () => ($('#actionsOutput').hi
 // Shared runner for reboot/shutdown/custom commands: confirm, POST, then
 // show whatever combination of note/stdout/stderr/error came back. Used
 // for anything that returns {ok, code, stdout, stderr} from the backend.
-async function runDeviceAction(url, { confirmMessage, title, body }) {
+async function runDeviceAction(url, { confirmMessage, title, body, runningMessage }) {
   if (confirmMessage && !confirm(confirmMessage)) return;
-  showActionsOutput(title, 'Running\u2026');
+  showActionsOutput(title, runningMessage || 'Running\u2026');
   try {
     const res = await fetch(url, {
       method: 'POST',
@@ -1302,6 +1304,7 @@ $('#customCommandButtons').addEventListener('click', (e) => {
     confirmMessage: `Run on "${device?.name}"?\n\n${cmd.command}`,
     title: cmd.label,
     body: JSON.stringify({ commandId: cmd.id }),
+    runningMessage: `Running\u2026 (this stays open until it finishes or ${cmd.timeoutSec || 120}s pass \u2014 keep this tab open)`,
   });
 });
 

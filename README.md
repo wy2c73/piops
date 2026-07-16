@@ -194,6 +194,15 @@ Without a matching sudoers rule, these actions will fail with a clear
 "a password is required" error rather than hanging -- that's expected until
 you add the rule above.
 
+**Long-running commands** (package upgrades, etc.): custom commands default
+to a 120-second timeout, but you can set any value up to 30 minutes when
+creating one in Settings. A command like
+`sudo -n apt-get update && sudo -n DEBIAN_FRONTEND=noninteractive apt-get -y upgrade`
+can genuinely take several minutes on a Pi -- set the timeout accordingly, and
+keep the browser tab open until it finishes; the Actions tab's output panel
+shows the exit code and full stdout/stderr once it completes (or a clear
+timeout error if it ran past the limit you set).
+
 ## How it works
 
 - `backend/lib/ssh.js` opens a short-lived SSH connection per poll, runs a single

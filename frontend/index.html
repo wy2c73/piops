@@ -176,9 +176,14 @@
 
       <div class="form-row">
         <label>Custom quick commands</label>
-        <p class="form-note">Define reusable commands that show up as buttons on every device's Actions tab. These run with whatever privileges the device's SSH account has &mdash; treat this like handing out limited root access, and only add commands you trust. Each run still requires confirming the exact command text on the device it's run against.</p>
+        <p class="form-note">Define reusable commands that show up as buttons on every device's Actions tab. These run with whatever privileges the device's SSH account has &mdash; treat this like handing out limited root access, and only add commands you trust. Each run still requires confirming the exact command text on the device it's run against. Passwordless sudo needs to be configured for anything your command uses <code>sudo</code> for, same as the built-in quick actions.</p>
         <input id="newCommandLabel" type="text" placeholder="Button label, e.g. Update packages" />
-        <textarea id="newCommandText" rows="2" placeholder="Command to run, e.g. sudo -n apt-get update && sudo -n apt-get -y upgrade" style="margin-top: 8px;"></textarea>
+        <textarea id="newCommandText" rows="2" placeholder="Command to run, e.g. sudo -n apt-get update && sudo -n DEBIAN_FRONTEND=noninteractive apt-get -y upgrade" style="margin-top: 8px;"></textarea>
+        <div class="threshold-row" style="margin-top: 8px;">
+          <span style="color: var(--text-muted); font-size: 12px;">Timeout</span>
+          <input id="newCommandTimeout" type="number" min="5" max="1800" value="120" style="width: 70px;" />
+          <span>seconds (default 120; raise this for things like package upgrades)</span>
+        </div>
         <div class="form-actions">
           <button type="button" class="btn btn-ghost" id="addCommandBtn">Add command</button>
         </div>

@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.5.1
+
+- Custom commands now have a configurable timeout (5s&ndash;30min, default
+  120s) instead of sharing the fixed 60s used by reboot/shutdown/service
+  actions &mdash; long-running commands like a package upgrade need more room
+  than that.
+- Fixed Node's default 5-minute HTTP request timeout, which would have
+  silently killed any custom command running longer than that regardless
+  of its own configured timeout.
+- Verified both directions end-to-end against a real SSH server: a command
+  exceeding its timeout fails at exactly that mark, and the same command
+  with a longer timeout completes successfully.
+- Settings now shows each custom command's configured timeout, and the
+  Actions tab shows it in the button tooltip and while a command is running.
+
 ## 1.5.0
 
 - **Fleet actions**: new "Actions" tab in the device detail view with

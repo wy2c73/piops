@@ -154,7 +154,7 @@ router.post('/:id/actions/run-command', async (req, res) => {
   try {
     const device = store.getWithSecret(req.params.id);
     if (!device) return res.status(404).json({ error: 'Device not found' });
-    const result = await runCommand(device, cmd.command);
+    const result = await runCommand(device, cmd.command, (cmd.timeoutSec || 120) * 1000);
     res.json({ ok: result.code === 0, ...result });
   } catch (err) {
     res.status(502).json({ ok: false, error: err.message });
