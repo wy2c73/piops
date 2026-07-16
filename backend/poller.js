@@ -4,6 +4,7 @@
 
 const store = require('./lib/store');
 const { collectStats } = require('./lib/ssh');
+const alertEngine = require('./lib/alertEngine');
 
 const POLL_INTERVAL_MS = Number(process.env.POLL_INTERVAL_MS || 15000);
 const CONCURRENCY = Number(process.env.POLL_CONCURRENCY || 5);
@@ -34,9 +35,13 @@ function subscribe(ws) {
 }
 
 async function pollDevice(device) {
+  const previousStats = cache.get(device.id) || null;
   const stats = await collectStats(device);
   cache.set(device.id, stats);
   broadcast(device.id, stats);
+  alertEngine.evaluate(device, previousStats, stats).catch((err) => {
+    console.error(`[alerts] evaluate() threw for ${device.name}:`, err.message);
+  });
   return stats;
 }
 

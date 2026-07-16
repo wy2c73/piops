@@ -14,6 +14,8 @@ dashboard reaches out over SSH to collect stats and to open interactive terminal
 - **Services tab** per device — full `systemctl` unit list with status, filterable
 - **Ports tab** per device — open TCP ports via `ss`/`netstat`; recognized web ports (Grafana, Home Assistant, Node-RED, Plex, Jellyfin, and similar) are clickable links
 - **Groups** — manage a curated list of group names in Settings; the Add/Edit device form uses a dropdown fed from that list
+- **Alerts** — webhook notifications (Discord, Slack, ntfy.sh, or generic JSON) when a device goes offline/recovers, a Pi reports under-voltage or throttling, or CPU/memory/disk/temperature crosses a threshold you set
+- **Under-voltage / throttling indicator** — reads `vcgencmd get_throttled` on Raspberry Pi devices and flags active or historical power/thermal issues right on the card
 - **In-browser SSH terminal** — click "Terminal" on any card for a real xterm.js session proxied over SSH
 - **"Open in local terminal"** — hands off to your system's default `ssh://` handler, or launch PuTTY / WinSCP directly (pick one in Settings; see "Windows integration" below)
 - **Settings** — Metric/Imperial and °C/°F display preference, view mode, local terminal app, saved per-browser
@@ -154,6 +156,17 @@ device(s) involved, not the whole server. To recover:
   restore from that backup.
 - Otherwise, remove the affected device(s) and re-add them with their
   credentials.
+
+## Setting up alerts
+
+In Settings, turn Alerts on, paste a webhook URL, and pick the matching format:
+
+- **Discord**: Server Settings &rarr; Integrations &rarr; Webhooks &rarr; New Webhook &rarr; copy its URL
+- **Slack**: create an "Incoming Webhook" app for your workspace &rarr; copy its URL
+- **ntfy.sh**: no account needed &mdash; just pick a topic name and use `https://ntfy.sh/your-topic-name` (subscribe to that same topic in the ntfy app on your phone)
+- **Generic**: any endpoint that accepts a POST with `{"title": "...", "message": "..."}` as JSON
+
+Use "Send test alert" to confirm it's wired up correctly before relying on it.
 
 ## How it works
 

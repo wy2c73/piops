@@ -77,6 +77,56 @@ function formatTemp(tempC) {
   return `${value.toFixed(1)}${unit}`;
 }
 
+// Renders a small badge for the classic Raspberry Pi lightning-bolt
+// under-voltage/throttling indicator. Red if something's actively wrong
+// right now, amber if it happened at some point since boot but has since
+// cleared, nothing at all if the device is fine or isn't a Pi.
+function throttleBadge(t) {
+  if (!t || !t.available) return '';
+  const now = t.underVoltageNow || t.throttledNow || t.freqCappedNow || t.tempLimitNow;
+  const occurred = t.underVoltageOccurred || t.throttledOccurred || t.freqCappedOccurred || t.tempLimitOccurred;
+  if (now) return `<span class="throttle-badge throttle-now" title="${escapeHtml(describeThrottled(t))}">&#9889; Power issue</span>`;
+  if (occurred) return `<span class="throttle-badge throttle-past" title="${escapeHtml(describeThrottled(t))}">&#9889; Past issue</span>`;
+  return '';
+}
+
+// Compact icon-only variant for the dense list view (the card view uses the
+// fuller throttleBadge() with a text label instead).
+function throttleIcon(t) {
+  if (!t || !t.available) return '';
+  const now = t.underVoltageNow || t.throttledNow || t.freqCappedNow || t.tempLimitNow;
+  const occurred = t.underVoltageOccurred || t.throttledOccurred || t.freqCappedOccurred || t.tempLimitOccurred;
+  if (now) return `<span class="throttle-icon throttle-now" title="${escapeHtml(describeThrottled(t))}">&#9889;</span>`;
+  if (occurred) return `<span class="throttle-icon throttle-past" title="${escapeHtml(describeThrottled(t))}">&#9889;</span>`;
+  return '';
+}
+
+function describeThrottled(t) {
+  if (!t || !t.available) return 'Not available (not a Pi, or vcgencmd is missing)';
+  const now = [];
+  if (t.underVoltageNow) now.push('under-voltage');
+  if (t.throttledNow) now.push('throttled');
+  if (t.freqCappedNow) now.push('frequency capped');
+  if (t.tempLimitNow) now.push('temperature limited');
+  if (now.length) return `Right now: ${now.join(', ')}`;
+  const occurred = [];
+  if (t.underVoltageOccurred) occurred.push('under-voltage');
+  if (t.throttledOccurred) occurred.push('throttling');
+  if (t.freqCappedOccurred) occurred.push('frequency capping');
+  if (t.tempLimitOccurred) occurred.push('temperature limiting');
+  if (occurred.length) return `OK right now, but ${occurred.join(' / ')} occurred since the last boot`;
+  return 'OK -- no under-voltage or throttling detected';
+}
+
+// Short form for the compact stat-box grid; describeThrottled() (the full
+// sentence) is used as that box's tooltip instead.
+function describeThrottledShort(t) {
+  if (!t || !t.available) return 'N/A';
+  if (t.underVoltageNow || t.throttledNow || t.freqCappedNow || t.tempLimitNow) return 'Issue now';
+  if (t.underVoltageOccurred || t.throttledOccurred || t.freqCappedOccurred || t.tempLimitOccurred) return 'Since boot';
+  return 'OK';
+}
+
 function applySettingsUI() {
   document.querySelectorAll('#unitSystemSegmented .segmented-opt').forEach((b) => b.classList.toggle('active', b.dataset.value === settings.unitSystem));
   document.querySelectorAll('#tempUnitSegmented .segmented-opt').forEach((b) => b.classList.toggle('active', b.dataset.value === settings.tempUnit));
@@ -91,6 +141,7 @@ function refreshVisibleUnits() {
 
 $('#settingsBtn').addEventListener('click', () => {
   applySettingsUI();
+  applyAlertConfigUI();
   $('#settingsModalBackdrop').hidden = false;
 });
 $('#settingsModalClose').addEventListener('click', () => ($('#settingsModalBackdrop').hidden = true));
@@ -231,7 +282,114 @@ $('#importBtn').addEventListener('click', async () => {
     $('#importPassphrase').value = '';
     await loadDevices();
     await loadGroups();
+    await loadAlertConfig();
     refreshVisibleUnits();
+  } catch (err) {
+    resultEl.textContent = err.message;
+    resultEl.classList.add('fail');
+  }
+});
+
+// ---------------------------------------------------------------- alerts
+let alertConfig = null;
+
+async function loadAlertConfig() {
+  try {
+    const res = await fetch('/api/alerts');
+    alertConfig = await res.json();
+  } catch {
+    alertConfig = null;
+  }
+  applyAlertConfigUI();
+}
+
+function applyAlertConfigUI() {
+  if (!alertConfig) return;
+  document.querySelectorAll('#alertsEnabledSegmented .segmented-opt').forEach((b) => {
+    b.classList.toggle('active', (b.dataset.value === 'on') === !!alertConfig.enabled);
+  });
+  $('#alertWebhookUrl').value = alertConfig.webhookUrl || '';
+  $('#alertFormat').value = alertConfig.format || 'generic';
+  $('#alertOffline').checked = !!alertConfig.notify.offline;
+  $('#alertRecovery').checked = !!alertConfig.notify.recovery;
+  $('#alertUndervoltage').checked = !!alertConfig.notify.undervoltage;
+  $('#alertThrottled').checked = !!alertConfig.notify.throttled;
+  $('#alertCpuEnabled').checked = !!alertConfig.notify.cpu;
+  $('#alertCpuThreshold').value = alertConfig.thresholds.cpuPct;
+  $('#alertMemEnabled').checked = !!alertConfig.notify.memory;
+  $('#alertMemThreshold').value = alertConfig.thresholds.memPct;
+  $('#alertDiskEnabled').checked = !!alertConfig.notify.disk;
+  $('#alertDiskThreshold').value = alertConfig.thresholds.diskPct;
+  $('#alertTempEnabled').checked = !!alertConfig.notify.temp;
+  $('#alertTempThreshold').value = alertConfig.thresholds.tempC;
+}
+
+$('#alertsEnabledSegmented').addEventListener('click', (e) => {
+  const btn = e.target.closest('.segmented-opt');
+  if (!btn) return;
+  document.querySelectorAll('#alertsEnabledSegmented .segmented-opt').forEach((b) => b.classList.toggle('active', b === btn));
+});
+
+function collectAlertPayload() {
+  return {
+    enabled: $('#alertsEnabledSegmented .segmented-opt.active')?.dataset.value === 'on',
+    webhookUrl: $('#alertWebhookUrl').value.trim(),
+    format: $('#alertFormat').value,
+    notify: {
+      offline: $('#alertOffline').checked,
+      recovery: $('#alertRecovery').checked,
+      undervoltage: $('#alertUndervoltage').checked,
+      throttled: $('#alertThrottled').checked,
+      cpu: $('#alertCpuEnabled').checked,
+      memory: $('#alertMemEnabled').checked,
+      disk: $('#alertDiskEnabled').checked,
+      temp: $('#alertTempEnabled').checked,
+    },
+    thresholds: {
+      cpuPct: Number($('#alertCpuThreshold').value) || 90,
+      memPct: Number($('#alertMemThreshold').value) || 90,
+      diskPct: Number($('#alertDiskThreshold').value) || 90,
+      tempC: Number($('#alertTempThreshold').value) || 75,
+    },
+  };
+}
+
+async function saveAlertConfigToServer() {
+  const res = await fetch('/api/alerts', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(collectAlertPayload()),
+  });
+  if (!res.ok) throw new Error((await res.json()).error || 'Save failed');
+  alertConfig = await res.json();
+  return alertConfig;
+}
+
+$('#alertSaveBtn').addEventListener('click', async () => {
+  const resultEl = $('#alertResult');
+  resultEl.textContent = 'Saving\u2026';
+  resultEl.className = 'test-result';
+  try {
+    await saveAlertConfigToServer();
+    resultEl.textContent = 'Saved';
+    resultEl.classList.add('ok');
+  } catch (err) {
+    resultEl.textContent = err.message;
+    resultEl.classList.add('fail');
+  }
+});
+
+$('#alertTestBtn').addEventListener('click', async () => {
+  const resultEl = $('#alertResult');
+  resultEl.textContent = 'Sending test alert\u2026';
+  resultEl.className = 'test-result';
+  try {
+    await saveAlertConfigToServer(); // save current (possibly unsaved) fields first, so the test matches what's on screen
+    const res = await fetch('/api/alerts/test', { method: 'POST' });
+    const body = await res.json();
+    if (!res.ok) throw new Error(body.error || 'Test failed');
+    resultEl.textContent = 'Test alert sent \u2014 check your webhook destination';
+    resultEl.classList.add('ok');
   } catch (err) {
     resultEl.textContent = err.message;
     resultEl.classList.add('fail');
@@ -516,7 +674,7 @@ function renderListView(container, list) {
     const online = stats.status === 'online';
     const row = el('tr', 'list-row');
     row.innerHTML = `
-      <td><span class="led ${ledClass}" title="${stats.status}"></span></td>
+      <td><span class="led ${ledClass}" title="${stats.status}"></span>${online ? throttleIcon(stats.throttled) : ''}</td>
       <td>
         <div class="list-name">${escapeHtml(device.name)}</div>
         <div class="list-sub">${escapeHtml(device.group || 'Unsorted')}</div>
@@ -561,6 +719,7 @@ function renderCard(device) {
       </div>
       <span class="led ${ledClass}" title="${stats.status}"></span>
     </div>
+    ${stats.status === 'online' ? throttleBadge(stats.throttled) : ''}
     ${stats.status === 'online' ? `
       <div class="meters">
         ${meterRow('CPU', stats.cpuUsedPct, stats.cpuUsedPct !== null ? stats.cpuUsedPct + '%' : '--')}
@@ -743,8 +902,8 @@ $('#deviceForm').addEventListener('submit', async (e) => {
 // ---------------------------------------------------------------- Detail drawer
 const detailModal = $('#detailBackdrop');
 
-function statBox(label, value) {
-  return `<div class="stat-box"><div class="label">${label}</div><div class="value">${value}</div></div>`;
+function statBox(label, value, title) {
+  return `<div class="stat-box"${title ? ` title="${escapeHtml(title)}"` : ''}><div class="label">${label}</div><div class="value">${value}</div></div>`;
 }
 
 function renderDetailStats(deviceId) {
@@ -767,6 +926,7 @@ function renderDetailStats(deviceId) {
     statBox('OS', stats.os || '--'),
     statBox('Kernel', stats.kernel || '--'),
     statBox('Hardware', stats.model || '--'),
+    statBox('Power', describeThrottledShort(stats.throttled), describeThrottled(stats.throttled)),
   ].join('');
 }
 
@@ -1006,5 +1166,6 @@ async function loadVersion() {
 
 loadVersion();
 loadGroups();
+loadAlertConfig();
 loadDevices();
 connectStatsSocket();

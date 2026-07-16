@@ -98,8 +98,32 @@ elif grep -q '^Model' /proc/cpuinfo 2>/dev/null; then
 else
   echo "Unknown"
 fi
+echo "__THROTTLED__"; vcgencmd get_throttled 2>/dev/null || echo "N/A"
 echo "__DONE__"
 `;
+
+// Decodes the bitmask from `vcgencmd get_throttled` (e.g. "throttled=0x50005").
+// Bits 0-3 are current conditions; bits 16-19 are "has happened since boot"
+// versions of the same four conditions. Only meaningful on real Raspberry Pi
+// hardware -- anything else (or a Pi without vcgencmd available) reports as
+// unavailable rather than guessing.
+function decodeThrottled(raw) {
+  const match = (raw || '').match(/0x([0-9a-fA-F]+)/);
+  if (!match) return { available: false };
+  const bits = parseInt(match[1], 16);
+  return {
+    available: true,
+    raw: '0x' + bits.toString(16),
+    underVoltageNow: !!(bits & 0x1),
+    freqCappedNow: !!(bits & 0x2),
+    throttledNow: !!(bits & 0x4),
+    tempLimitNow: !!(bits & 0x8),
+    underVoltageOccurred: !!(bits & 0x10000),
+    freqCappedOccurred: !!(bits & 0x20000),
+    throttledOccurred: !!(bits & 0x40000),
+    tempLimitOccurred: !!(bits & 0x80000),
+  };
+}
 
 function parseSection(raw, marker) {
   const re = new RegExp(`__${marker}__\\n([\\s\\S]*?)(?=\\n__|$)`);
@@ -129,6 +153,7 @@ async function collectStats(device) {
       os: parseSection(stdout, 'OS'),
       kernel: parseSection(stdout, 'KERNEL'),
       model: parseSection(stdout, 'MODEL'),
+      throttled: decodeThrottled(parseSection(stdout, 'THROTTLED')),
       uptime: parseSection(stdout, 'UPTIME'),
       loadAvg: { '1m': Number(load[0]), '5m': Number(load[1]), '15m': Number(load[2]) },
       memory: mem.length === 3 ? { totalMb: mem[0], usedMb: mem[1], availableMb: mem[2], usedPct: Math.round((mem[1] / mem[0]) * 100) } : null,
@@ -152,6 +177,7 @@ async function collectStats(device) {
       os: null,
       kernel: null,
       model: null,
+      throttled: { available: false },
       uptime: null,
       loadAvg: null,
       memory: null,

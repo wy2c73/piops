@@ -83,6 +83,63 @@
       <hr class="modal-divider" />
 
       <div class="form-row">
+        <label>Alerts</label>
+        <p class="form-note">Get a webhook notification when a device goes offline/comes back, a Pi reports under-voltage or throttling, or a stat crosses a threshold you set. Runs server-side on a poll-to-poll basis, so it works even if this tab isn't open.</p>
+        <div class="segmented" id="alertsEnabledSegmented">
+          <button type="button" class="segmented-opt" data-value="on">On</button>
+          <button type="button" class="segmented-opt" data-value="off">Off</button>
+        </div>
+      </div>
+      <div class="form-row two-col">
+        <div>
+          <label for="alertWebhookUrl">Webhook URL</label>
+          <input id="alertWebhookUrl" type="text" placeholder="https://..." />
+        </div>
+        <div>
+          <label for="alertFormat">Format</label>
+          <select id="alertFormat">
+            <option value="generic">Generic JSON</option>
+            <option value="discord">Discord</option>
+            <option value="slack">Slack</option>
+            <option value="ntfy">ntfy.sh (plain text)</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <label>Notify me when&hellip;</label>
+        <label class="checkbox-row"><input type="checkbox" id="alertOffline" /> A device goes offline</label>
+        <label class="checkbox-row"><input type="checkbox" id="alertRecovery" /> A device comes back online</label>
+        <label class="checkbox-row"><input type="checkbox" id="alertUndervoltage" /> Under-voltage is detected (Pi power issue)</label>
+        <label class="checkbox-row"><input type="checkbox" id="alertThrottled" /> CPU throttling is detected</label>
+      </div>
+      <div class="form-row">
+        <label>Threshold alerts</label>
+        <div class="threshold-row">
+          <label class="checkbox-row"><input type="checkbox" id="alertCpuEnabled" /> CPU over</label>
+          <input id="alertCpuThreshold" type="number" min="1" max="100" /><span>%</span>
+        </div>
+        <div class="threshold-row">
+          <label class="checkbox-row"><input type="checkbox" id="alertMemEnabled" /> Memory over</label>
+          <input id="alertMemThreshold" type="number" min="1" max="100" /><span>%</span>
+        </div>
+        <div class="threshold-row">
+          <label class="checkbox-row"><input type="checkbox" id="alertDiskEnabled" /> Disk over</label>
+          <input id="alertDiskThreshold" type="number" min="1" max="100" /><span>%</span>
+        </div>
+        <div class="threshold-row">
+          <label class="checkbox-row"><input type="checkbox" id="alertTempEnabled" /> Temp over</label>
+          <input id="alertTempThreshold" type="number" min="1" max="120" /><span>&deg;C (always Celsius here, regardless of the display setting above)</span>
+        </div>
+      </div>
+      <div class="form-actions">
+        <span class="test-result" id="alertResult"></span>
+        <button type="button" class="btn btn-ghost" id="alertTestBtn">Send test alert</button>
+        <button type="button" class="btn btn-primary" id="alertSaveBtn">Save alert settings</button>
+      </div>
+
+      <hr class="modal-divider" />
+
+      <div class="form-row">
         <label>Import devices from CSV</label>
         <p class="form-note">Columns: name, host, port, username, group, authType (password or key), secret, passphrase. Existing devices (matched by host/port/username) are skipped.</p>
         <input id="csvFile" type="file" accept=".csv,text/csv" />

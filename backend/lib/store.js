@@ -9,6 +9,7 @@ const { encrypt, decrypt } = require('./crypto');
 
 const DATA_PATH = path.join(__dirname, '..', 'data', 'devices.json');
 const GROUPS_PATH = path.join(__dirname, '..', 'data', 'groups.json');
+const ALERTS_PATH = path.join(__dirname, '..', 'data', 'alerts.json');
 
 function load() {
   if (!fs.existsSync(DATA_PATH)) return [];
@@ -97,7 +98,63 @@ function remove(id) {
   return next.length !== devices.length;
 }
 
-module.exports = { list, get, getWithSecret, create, update, remove, listGroups, addGroup, removeGroup };
+module.exports = { list, get, getWithSecret, create, update, remove, listGroups, addGroup, removeGroup, loadAlertConfig, saveAlertConfig };
+
+// ---- Alert configuration ----
+// A single config object (not per-device) controlling whether/how the
+// dashboard sends webhook notifications on state changes the poller
+// detects. Lives in its own file since it's unrelated to the device
+// registry and, unlike device credentials, isn't sensitive.
+
+const DEFAULT_ALERT_CONFIG = {
+  enabled: false,
+  webhookUrl: '',
+  format: 'generic', // 'generic' | 'discord' | 'slack' | 'ntfy'
+  notify: {
+    offline: true,
+    recovery: true,
+    undervoltage: true,
+    throttled: true,
+    cpu: false,
+    memory: false,
+    disk: false,
+    temp: false,
+  },
+  thresholds: {
+    cpuPct: 90,
+    memPct: 90,
+    diskPct: 90,
+    tempC: 75, // always Celsius internally, regardless of the dashboard's display setting
+  },
+};
+
+function loadAlertConfig() {
+  if (!fs.existsSync(ALERTS_PATH)) return structuredClone(DEFAULT_ALERT_CONFIG);
+  try {
+    const saved = JSON.parse(fs.readFileSync(ALERTS_PATH, 'utf8'));
+    return {
+      ...DEFAULT_ALERT_CONFIG,
+      ...saved,
+      notify: { ...DEFAULT_ALERT_CONFIG.notify, ...(saved.notify || {}) },
+      thresholds: { ...DEFAULT_ALERT_CONFIG.thresholds, ...(saved.thresholds || {}) },
+    };
+  } catch {
+    return structuredClone(DEFAULT_ALERT_CONFIG);
+  }
+}
+
+function saveAlertConfig(partial) {
+  const current = loadAlertConfig();
+  const updated = {
+    ...current,
+    ...partial,
+    notify: { ...current.notify, ...(partial.notify || {}) },
+    thresholds: { ...current.thresholds, ...(partial.thresholds || {}) },
+  };
+  fs.mkdirSync(path.dirname(ALERTS_PATH), { recursive: true });
+  fs.writeFileSync(ALERTS_PATH, JSON.stringify(updated, null, 2), { mode: 0o600 });
+  return updated;
+}
 
 // ---- Curated device groups ----
 // A small, separate list of group names the person has explicitly created,

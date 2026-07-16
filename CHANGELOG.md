@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.4.0
+
+- **Alerting**: configurable webhook notifications (Discord, Slack,
+  ntfy.sh, or generic JSON) for device offline/recovery, Pi under-voltage
+  or throttling, and CPU/memory/disk/temperature thresholds you set.
+  Runs server-side against the poller, so it fires even with no browser
+  open, and only on the actual state transition (not every 15s while a
+  condition persists). Includes a "Send test alert" button. Config is
+  included in backup export/import.
+- **Under-voltage / throttling indicator**: reads `vcgencmd get_throttled`
+  and decodes it into current vs. since-boot conditions. Shows a red
+  "Power issue" badge on cards when something's actively wrong, amber if
+  it happened since boot but has since cleared, and a full breakdown in
+  the device detail view. No-ops cleanly on non-Pi devices.
+
 ## 1.3.0
 
 - Reworked the device detail drawer's layout: it previously nested two

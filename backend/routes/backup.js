@@ -35,6 +35,7 @@ router.post('/export', (req, res) => {
     exportedAt: new Date().toISOString(),
     devices,
     groups: store.listGroups(),
+    alerts: store.loadAlertConfig(),
     settings: clientSettings || null,
   });
 
@@ -81,6 +82,7 @@ router.post('/import', async (req, res) => {
 
   newIds.forEach((id) => poller.refreshDevice(id)); // don't block the response on these
   (bundle.groups || []).forEach((name) => store.addGroup(name));
+  if (bundle.alerts) store.saveAlertConfig(bundle.alerts);
 
   res.json({ imported, skipped, settings: bundle.settings || null });
 });

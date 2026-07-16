@@ -17,6 +17,7 @@ process.on('uncaughtException', (err) => {
 const devicesRouter = require('./routes/devices');
 const backupRouter = require('./routes/backup');
 const groupsRouter = require('./routes/groups');
+const alertsRouter = require('./routes/alerts');
 const poller = require('./poller');
 const wsTerminal = require('./wsTerminal');
 
@@ -32,6 +33,7 @@ app.use(express.json({ limit: '5mb' }));
 app.use('/api/devices', devicesRouter);
 app.use('/api/backup', backupRouter);
 app.use('/api/groups', groupsRouter);
+app.use('/api/alerts', alertsRouter);
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 app.get('/api/version', (req, res) => res.json({ version: require('./package.json').version }));
 
