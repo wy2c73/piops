@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.5.5
+
+- Fixed the status LED being invisible in List View. The `.led` class
+  never declared a `display` property, so as a `<span>` it defaulted to
+  `display: inline` -- width/height are simply ignored on inline
+  elements per the CSS spec. It looked fine on cards only because that
+  span sits inside a flex container there (flex "blockifies" its
+  children automatically); in List View it sits in a plain `<td>`, where
+  it stayed truly inline and effectively invisible. Fixed with
+  `display: inline-block`, which works correctly in both contexts.
+- The under-voltage/throttling indicator now always shows on cards and
+  in List View, not just when there's a problem: green "OK" when
+  everything's fine, red for an active issue, amber for a past issue,
+  and a muted gray "N/A" when unavailable (not a Pi, or the device is
+  offline) -- so its absence never has to be interpreted as "fine."
+
 ## 1.5.4
 
 - Fixed the Actions tab output panel still getting cut off after the

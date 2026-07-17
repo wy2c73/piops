@@ -83,23 +83,27 @@ function formatTemp(tempC) {
 // right now, amber if it happened at some point since boot but has since
 // cleared, nothing at all if the device is fine or isn't a Pi.
 function throttleBadge(t) {
-  if (!t || !t.available) return '';
+  if (!t || !t.available) {
+    return `<span class="throttle-badge throttle-na" title="${escapeHtml(describeThrottled(t))}">&#9889; N/A</span>`;
+  }
   const now = t.underVoltageNow || t.throttledNow || t.freqCappedNow || t.tempLimitNow;
   const occurred = t.underVoltageOccurred || t.throttledOccurred || t.freqCappedOccurred || t.tempLimitOccurred;
   if (now) return `<span class="throttle-badge throttle-now" title="${escapeHtml(describeThrottled(t))}">&#9889; Power issue</span>`;
   if (occurred) return `<span class="throttle-badge throttle-past" title="${escapeHtml(describeThrottled(t))}">&#9889; Past issue</span>`;
-  return '';
+  return `<span class="throttle-badge throttle-ok" title="${escapeHtml(describeThrottled(t))}">&#9889; OK</span>`;
 }
 
 // Compact icon-only variant for the dense list view (the card view uses the
 // fuller throttleBadge() with a text label instead).
 function throttleIcon(t) {
-  if (!t || !t.available) return '';
+  if (!t || !t.available) {
+    return `<span class="throttle-icon throttle-na" title="${escapeHtml(describeThrottled(t))}">&#9889;</span>`;
+  }
   const now = t.underVoltageNow || t.throttledNow || t.freqCappedNow || t.tempLimitNow;
   const occurred = t.underVoltageOccurred || t.throttledOccurred || t.freqCappedOccurred || t.tempLimitOccurred;
   if (now) return `<span class="throttle-icon throttle-now" title="${escapeHtml(describeThrottled(t))}">&#9889;</span>`;
   if (occurred) return `<span class="throttle-icon throttle-past" title="${escapeHtml(describeThrottled(t))}">&#9889;</span>`;
-  return '';
+  return `<span class="throttle-icon throttle-ok" title="${escapeHtml(describeThrottled(t))}">&#9889;</span>`;
 }
 
 function describeThrottled(t) {
@@ -828,7 +832,7 @@ function renderListView(container, list) {
     const row = el('tr', 'list-row');
     row.innerHTML = `
       <td><label class="card-select" title="Select for bulk actions"><input type="checkbox" class="device-select" data-id="${device.id}" ${selectedIds.has(device.id) ? 'checked' : ''} /></label></td>
-      <td><span class="led ${ledClass}" title="${stats.status}"></span>${online ? throttleIcon(stats.throttled) : ''}</td>
+      <td><span class="led ${ledClass}" title="${stats.status}"></span>${throttleIcon(stats.throttled)}</td>
       <td>
         <div class="list-name">${escapeHtml(device.name)}</div>
         <div class="list-sub">${escapeHtml(device.group || 'Unsorted')}</div>
@@ -878,7 +882,7 @@ function renderCard(device) {
       </div>
       <span class="led ${ledClass}" title="${stats.status}"></span>
     </div>
-    ${stats.status === 'online' ? throttleBadge(stats.throttled) : ''}
+    ${throttleBadge(stats.throttled)}
     ${stats.status === 'online' ? `
       <div class="meters">
         ${meterRow('CPU', stats.cpuUsedPct, stats.cpuUsedPct !== null ? stats.cpuUsedPct + '%' : '--')}
