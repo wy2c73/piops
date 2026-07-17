@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.5.6
+
+- Fixed the power/throttling icon always appearing yellow in List View
+  regardless of actual status (visible in a side-by-side screenshot: a
+  device Card View correctly showed gray "N/A" while List View showed the
+  same yellow bolt as every other device). Root cause: the `\u26a1` emoji
+  character renders as a fixed-color, multi-color glyph in many browsers/
+  fonts, which CSS `color` cannot override at all -- Card View's colored
+  pill background masked this, List View's bare icon fully exposed it.
+  Replaced with an inline SVG using `fill=\"currentColor\"`, which is a
+  real monochrome vector shape that correctly inherits color from the
+  `.throttle-*` class in both views.
+
 ## 1.5.5
 
 - Fixed the status LED being invisible in List View. The `.led` class

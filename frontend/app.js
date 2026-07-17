@@ -78,32 +78,39 @@ function formatTemp(tempC) {
   return `${value.toFixed(1)}${unit}`;
 }
 
+// A plain "⚡" character renders as a fixed-color emoji glyph in many
+// browsers/fonts -- CSS `color` has no effect on it at all, which is why
+// the list-view icon always looked yellow regardless of actual status.
+// An inline SVG with fill="currentColor" is a real vector shape that
+// properly inherits whatever color the surrounding .throttle-* class sets.
+const BOLT_SVG = '<svg class="throttle-svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg>';
+
 // Renders a small badge for the classic Raspberry Pi lightning-bolt
 // under-voltage/throttling indicator. Red if something's actively wrong
 // right now, amber if it happened at some point since boot but has since
 // cleared, nothing at all if the device is fine or isn't a Pi.
 function throttleBadge(t) {
   if (!t || !t.available) {
-    return `<span class="throttle-badge throttle-na" title="${escapeHtml(describeThrottled(t))}">&#9889; N/A</span>`;
+    return `<span class="throttle-badge throttle-na" title="${escapeHtml(describeThrottled(t))}">${BOLT_SVG} N/A</span>`;
   }
   const now = t.underVoltageNow || t.throttledNow || t.freqCappedNow || t.tempLimitNow;
   const occurred = t.underVoltageOccurred || t.throttledOccurred || t.freqCappedOccurred || t.tempLimitOccurred;
-  if (now) return `<span class="throttle-badge throttle-now" title="${escapeHtml(describeThrottled(t))}">&#9889; Power issue</span>`;
-  if (occurred) return `<span class="throttle-badge throttle-past" title="${escapeHtml(describeThrottled(t))}">&#9889; Past issue</span>`;
-  return `<span class="throttle-badge throttle-ok" title="${escapeHtml(describeThrottled(t))}">&#9889; OK</span>`;
+  if (now) return `<span class="throttle-badge throttle-now" title="${escapeHtml(describeThrottled(t))}">${BOLT_SVG} Power issue</span>`;
+  if (occurred) return `<span class="throttle-badge throttle-past" title="${escapeHtml(describeThrottled(t))}">${BOLT_SVG} Past issue</span>`;
+  return `<span class="throttle-badge throttle-ok" title="${escapeHtml(describeThrottled(t))}">${BOLT_SVG} OK</span>`;
 }
 
 // Compact icon-only variant for the dense list view (the card view uses the
 // fuller throttleBadge() with a text label instead).
 function throttleIcon(t) {
   if (!t || !t.available) {
-    return `<span class="throttle-icon throttle-na" title="${escapeHtml(describeThrottled(t))}">&#9889;</span>`;
+    return `<span class="throttle-icon throttle-na" title="${escapeHtml(describeThrottled(t))}">${BOLT_SVG}</span>`;
   }
   const now = t.underVoltageNow || t.throttledNow || t.freqCappedNow || t.tempLimitNow;
   const occurred = t.underVoltageOccurred || t.throttledOccurred || t.freqCappedOccurred || t.tempLimitOccurred;
-  if (now) return `<span class="throttle-icon throttle-now" title="${escapeHtml(describeThrottled(t))}">&#9889;</span>`;
-  if (occurred) return `<span class="throttle-icon throttle-past" title="${escapeHtml(describeThrottled(t))}">&#9889;</span>`;
-  return `<span class="throttle-icon throttle-ok" title="${escapeHtml(describeThrottled(t))}">&#9889;</span>`;
+  if (now) return `<span class="throttle-icon throttle-now" title="${escapeHtml(describeThrottled(t))}">${BOLT_SVG}</span>`;
+  if (occurred) return `<span class="throttle-icon throttle-past" title="${escapeHtml(describeThrottled(t))}">${BOLT_SVG}</span>`;
+  return `<span class="throttle-icon throttle-ok" title="${escapeHtml(describeThrottled(t))}">${BOLT_SVG}</span>`;
 }
 
 function describeThrottled(t) {

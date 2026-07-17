@@ -241,6 +241,7 @@ button { font-family: inherit; }
 .throttle-badge.throttle-na { background: rgba(122, 130, 150, 0.12); color: var(--text-dim); }
 
 .throttle-icon { margin-left: 4px; cursor: default; }
+.throttle-svg { width: 11px; height: 11px; vertical-align: -1px; flex-shrink: 0; }
 .throttle-icon.throttle-now { color: var(--bad); }
 .throttle-icon.throttle-past { color: var(--warn); }
 .throttle-icon.throttle-ok { color: var(--good); }
