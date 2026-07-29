@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.6.0
+
+- **Per-device alert threshold overrides**: the Add/Edit device form now
+  has a collapsible "Alert threshold overrides" section (CPU/Memory/Disk/
+  Temp). Leave any blank to use the global threshold from Settings ->
+  Alerts; set one to give that specific device its own number instead
+  (e.g. a Pi that normally runs hotter, or one with less disk to spare).
+  Verified against the alert engine directly: a device with no override
+  uses the global threshold, a device with an override uses its own value
+  even when it's more lenient or more strict than global, and a partial
+  override (only one stat set) correctly falls back to global for the
+  others. Included in backup export/import alongside the rest of a
+  device's settings.
+- Shipped zip filenames now include the version number.
+
 ## 1.5.6
 
 - Fixed the power/throttling icon always appearing yellow in List View

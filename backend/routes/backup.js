@@ -29,6 +29,7 @@ router.post('/export', (req, res) => {
       passphrase: full.passphrase,
       group: full.group,
       tags: full.tags,
+      alertOverrides: full.alertOverrides,
     };
   });
 

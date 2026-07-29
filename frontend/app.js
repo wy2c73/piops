@@ -955,6 +955,14 @@ function connectStatsSocket() {
 const deviceModal = $('#deviceModalBackdrop');
 let authType = 'password';
 
+function applyAlertOverridePlaceholders() {
+  const g = alertConfig?.thresholds || {};
+  $('#fAlertCpu').placeholder = g.cpuPct !== undefined ? `global: ${g.cpuPct}%` : 'global';
+  $('#fAlertMem').placeholder = g.memPct !== undefined ? `global: ${g.memPct}%` : 'global';
+  $('#fAlertDisk').placeholder = g.diskPct !== undefined ? `global: ${g.diskPct}%` : 'global';
+  $('#fAlertTemp').placeholder = g.tempC !== undefined ? `global: ${g.tempC}\u00b0C` : 'global';
+}
+
 function openAddModal() {
   $('#deviceModalTitle').textContent = 'Add device';
   $('#deviceForm').reset();
@@ -965,6 +973,11 @@ function openAddModal() {
   $('#secretLabel').textContent = 'Password';
   $('#fSecret').placeholder = 'Password for SSH login';
   $('#testResult').textContent = '';
+  $('#fAlertCpu').value = '';
+  $('#fAlertMem').value = '';
+  $('#fAlertDisk').value = '';
+  $('#fAlertTemp').value = '';
+  applyAlertOverridePlaceholders();
   deviceModal.hidden = false;
   $('#fName').focus();
 }
@@ -982,6 +995,12 @@ function openEditModal(device) {
   $('#fSecret').placeholder = 'Leave blank to keep the existing credential';
   $('#fPassphrase').value = '';
   $('#testResult').textContent = '';
+  const o = device.alertOverrides || {};
+  $('#fAlertCpu').value = o.cpuPct ?? '';
+  $('#fAlertMem').value = o.memPct ?? '';
+  $('#fAlertDisk').value = o.diskPct ?? '';
+  $('#fAlertTemp').value = o.tempC ?? '';
+  applyAlertOverridePlaceholders();
   deviceModal.hidden = false;
 }
 
@@ -1014,6 +1033,12 @@ function collectFormPayload() {
     authType,
     secret: $('#fSecret').value,
     passphrase: $('#fPassphrase').value,
+    alertOverrides: {
+      cpuPct: $('#fAlertCpu').value.trim(),
+      memPct: $('#fAlertMem').value.trim(),
+      diskPct: $('#fAlertDisk').value.trim(),
+      tempC: $('#fAlertTemp').value.trim(),
+    },
   };
 }
 

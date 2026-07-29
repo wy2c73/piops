@@ -170,6 +170,14 @@ In Settings, turn Alerts on, paste a webhook URL, and pick the matching format:
 
 Use "Send test alert" to confirm it's wired up correctly before relying on it.
 
+The four thresholds (CPU/Memory/Disk/Temp) set in Settings are the
+fleet-wide defaults. If one specific device needs a different number --
+say, a Pi that always runs a bit hotter, or one that's normally low on
+disk -- open its Add/Edit device form and expand "Alert threshold
+overrides." Leave any of the four blank to keep using the global default;
+set one to give that device its own value instead. Everything else about
+alerting (on/off, webhook, which event types are enabled) stays global.
+
 ## Setting up quick actions
 
 Reboot, Shutdown, service restarts, and custom commands all run over the

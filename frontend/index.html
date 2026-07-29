@@ -265,6 +265,28 @@
         <input id="fPassphrase" type="password" />
       </div>
       <p class="form-note">Credentials are encrypted at rest on this dashboard's own disk (AES-256-GCM). They're only ever used to open outbound SSH connections to your devices.</p>
+
+      <details class="advanced-section">
+        <summary>Alert threshold overrides (optional)</summary>
+        <p class="form-note">Leave any of these blank to use the global threshold set in Settings &rarr; Alerts. Set one here only if this specific device needs a different number (e.g. a Pi that normally runs hotter, or one with less free disk to spare).</p>
+        <div class="threshold-row">
+          <span class="threshold-label">CPU over</span>
+          <input id="fAlertCpu" type="number" min="1" max="100" placeholder="global" /><span>%</span>
+        </div>
+        <div class="threshold-row">
+          <span class="threshold-label">Memory over</span>
+          <input id="fAlertMem" type="number" min="1" max="100" placeholder="global" /><span>%</span>
+        </div>
+        <div class="threshold-row">
+          <span class="threshold-label">Disk over</span>
+          <input id="fAlertDisk" type="number" min="1" max="100" placeholder="global" /><span>%</span>
+        </div>
+        <div class="threshold-row">
+          <span class="threshold-label">Temp over</span>
+          <input id="fAlertTemp" type="number" min="1" max="120" placeholder="global" /><span>&deg;C</span>
+        </div>
+      </details>
+
       <div class="form-actions">
         <span class="test-result" id="testResult"></span>
         <button type="button" class="btn btn-ghost" id="testConnBtn">Test connection</button>

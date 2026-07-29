@@ -48,6 +48,20 @@ function get(id) {
   return device ? sanitize(device) : null;
 }
 
+// Per-device alert threshold overrides: null/absent means "use the global
+// threshold from Settings -> Alerts" for that specific stat. Only numeric
+// overrides are kept; anything blank/invalid is dropped rather than stored
+// as a bogus value.
+function sanitizeAlertOverrides(overrides) {
+  if (!overrides || typeof overrides !== 'object') return null;
+  const clean = {};
+  for (const key of ['cpuPct', 'memPct', 'diskPct', 'tempC']) {
+    const v = overrides[key];
+    if (v !== null && v !== undefined && v !== '' && !isNaN(Number(v))) clean[key] = Number(v);
+  }
+  return Object.keys(clean).length ? clean : null;
+}
+
 function create(input) {
   const devices = load();
   // Preserve the original ID when restoring from a backup (so a saved
@@ -68,6 +82,7 @@ function create(input) {
     passphrase: input.passphrase ? encrypt(input.passphrase) : null,
     group: input.group || 'Unsorted',
     tags: input.tags || [],
+    alertOverrides: sanitizeAlertOverrides(input.alertOverrides),
     createdAt: new Date().toISOString(),
   };
   devices.push(device);
@@ -93,6 +108,7 @@ function update(id, input) {
     passphrase: input.passphrase ? encrypt(input.passphrase) : existing.passphrase,
     group: input.group ?? existing.group,
     tags: input.tags ?? existing.tags,
+    alertOverrides: input.alertOverrides !== undefined ? sanitizeAlertOverrides(input.alertOverrides) : existing.alertOverrides,
   };
   devices[idx] = updated;
   save(devices);
