@@ -1,0 +1,13 @@
+backend/node_modules
+backend/data/devices.json
+backend/data/.key
+backend/data/groups.json
+backend/data/alerts.json
+backend/data/customCommands.json
+.git
+*.log
+windows
+INSTALL.md
+CHANGELOG.md
+README.md
+DOCKER.md

@@ -18,6 +18,7 @@ dashboard reaches out over SSH to collect stats and to open interactive terminal
 - **Under-voltage / throttling indicator** — reads `vcgencmd get_throttled` on Raspberry Pi devices and flags active or historical power/thermal issues right on the card
 - **Fleet actions** — reboot, shut down, or restart a specific service, all with a confirmation dialog; define your own custom quick commands in Settings that show up as buttons on every device
 - **Bulk actions** — select multiple devices to assign a group, export to CSV, or delete them all at once
+- **Docker support** — run it as a container instead of a native Node process; see [DOCKER.md](DOCKER.md), including specific steps for a Synology NAS
 - **In-browser SSH terminal** — click "Terminal" on any card for a real xterm.js session proxied over SSH
 - **"Open in local terminal"** — hands off to your system's default `ssh://` handler, or launch PuTTY / WinSCP directly (pick one in Settings; see "Windows integration" below)
 - **Settings** — Metric/Imperial and °C/°F display preference, view mode, local terminal app, saved per-browser
@@ -39,6 +40,9 @@ cd backend
 npm install
 npm start
 ```
+
+Prefer Docker? See [DOCKER.md](DOCKER.md) -- includes specific steps for
+running this on a Synology NAS via Container Manager.
 
 On startup it prints every LAN IP it's reachable on, e.g.:
 

@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.7.0
+
+- **Docker support**: added `Dockerfile` and `docker-compose.yml` as an
+  alternative to the native systemd install. New [DOCKER.md](DOCKER.md)
+  covers general Docker usage plus specific steps for Synology Container
+  Manager (both the GUI Project-import workflow and the SSH/CLI route).
+  Device data (registry, encryption key, groups, alerts, custom commands)
+  persists via a mounted volume, independent of container rebuilds.
+  `ssh2`'s optional native acceleration is skipped in the image
+  (`--ignore-scripts`) since it isn't required and this avoids needing a
+  build toolchain in the container at all -- particularly relevant for
+  ARM-based NAS models.
+  Verified as much as this environment allows: `npm install
+  --ignore-scripts` and the app itself run cleanly with the exact
+  dependency set and file layout the image uses. Actually pulling and
+  building the `node:20-bookworm-slim` base image itself could not be
+  tested here (this sandbox can reach package registries like npm/pip/apt
+  but not container registries) -- if the build behaves differently on
+  your NAS, let me know what you see and I'll adjust.
+
 ## 1.6.0
 
 - **Per-device alert threshold overrides**: the Add/Edit device form now

@@ -4,4 +4,5 @@ node_modules/
 **/data/groups.json
 **/data/alerts.json
 **/data/customCommands.json
+/data/
 *.log
