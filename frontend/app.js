@@ -1,5 +1,18 @@
 const API = '/api/devices';
 
+// If a session expires (or was never established) mid-use, any API call
+// will start returning 401 -- catch that globally rather than at every
+// individual call site, and bounce to the login page.
+const nativeFetch = window.fetch.bind(window);
+window.fetch = async (...args) => {
+  const res = await nativeFetch(...args);
+  const url = String(args[0] || '');
+  if (res.status === 401 && url.startsWith('/api/') && !url.startsWith('/api/auth/')) {
+    window.location.href = '/login.html';
+  }
+  return res;
+};
+
 let devices = [];       // last known device list (without secrets)
 let statsCache = {};    // deviceId -> stats, kept fresh via websocket
 let activeDeviceId = null;
@@ -155,9 +168,86 @@ $('#settingsBtn').addEventListener('click', () => {
   applySettingsUI();
   applyAlertConfigUI();
   renderCommandList();
+  applyAuthUI();
   $('#settingsModalBackdrop').hidden = false;
 });
 $('#settingsModalClose').addEventListener('click', () => ($('#settingsModalBackdrop').hidden = true));
+
+// ---------------------------------------------------------------- security (password gate)
+let authStatus = { enabled: false, authenticated: true };
+
+async function loadAuthStatus() {
+  try {
+    const res = await fetch('/api/auth/status');
+    authStatus = await res.json();
+  } catch {
+    authStatus = { enabled: false, authenticated: true };
+  }
+  applyAuthUI();
+}
+
+function applyAuthUI() {
+  document.querySelectorAll('#authEnabledSegmented .segmented-opt').forEach((b) => {
+    b.classList.toggle('active', (b.dataset.value === 'on') === authStatus.enabled);
+  });
+  $('#logoutBtn').hidden = !authStatus.enabled;
+  $('#authCurrentPasswordLabel').hidden = !authStatus.enabled;
+  $('#authCurrentPassword').hidden = !authStatus.enabled;
+  $('#authNewPasswordLabel').textContent = authStatus.enabled ? 'New password (leave blank to keep current)' : 'Password';
+}
+
+$('#authEnabledSegmented').addEventListener('click', (e) => {
+  const btn = e.target.closest('.segmented-opt');
+  if (!btn) return;
+  document.querySelectorAll('#authEnabledSegmented .segmented-opt').forEach((b) => b.classList.toggle('active', b === btn));
+});
+
+$('#authSaveBtn').addEventListener('click', async () => {
+  const resultEl = $('#authResult');
+  const wantsOn = $('#authEnabledSegmented .segmented-opt.active')?.dataset.value === 'on';
+  const currentPassword = $('#authCurrentPassword').value;
+  const newPassword = $('#authNewPassword').value;
+
+  resultEl.textContent = 'Saving\u2026';
+  resultEl.className = 'test-result';
+  try {
+    let body;
+    if (!wantsOn) {
+      body = { action: 'disable', currentPassword };
+    } else {
+      if (!authStatus.enabled && !newPassword) {
+        throw new Error('Enter a password to turn Security on');
+      }
+      if (!newPassword && authStatus.enabled) {
+        // Turning it "on" while already on with no new password typed is a no-op save.
+        resultEl.textContent = 'Nothing to change';
+        resultEl.classList.add('ok');
+        return;
+      }
+      body = { action: 'setPassword', currentPassword, newPassword };
+    }
+    const res = await fetch('/api/auth/config', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error || 'Save failed');
+    resultEl.textContent = 'Saved';
+    resultEl.classList.add('ok');
+    $('#authCurrentPassword').value = '';
+    $('#authNewPassword').value = '';
+    await loadAuthStatus();
+  } catch (err) {
+    resultEl.textContent = err.message;
+    resultEl.classList.add('fail');
+  }
+});
+
+$('#logoutBtn').addEventListener('click', async () => {
+  await fetch('/api/auth/logout', { method: 'POST' });
+  window.location.href = '/login.html';
+});
 $('#settingsModalBackdrop').addEventListener('click', (e) => {
   if (e.target === $('#settingsModalBackdrop')) $('#settingsModalBackdrop').hidden = true;
 });
@@ -1018,6 +1108,156 @@ $('#authTypeSegmented').addEventListener('click', (e) => {
   if (btn) setAuthType(btn.dataset.value);
 });
 
+// ---------------------------------------------------------------- network scan
+let scanResults = [];
+let scanAuthType = 'password';
+
+async function openScanModal() {
+  $('#scanModalBackdrop').hidden = false;
+  $('#scanResultsSection').hidden = true;
+  $('#scanStatus').textContent = '';
+  $('#scanAddResult').textContent = '';
+  scanResults = [];
+  populateScanGroupOptions();
+  try {
+    const res = await fetch('/api/scan/detect');
+    const { cidr } = await res.json();
+    $('#scanCidr').value = cidr;
+  } catch {
+    $('#scanCidr').value = '192.168.1.0/24';
+  }
+}
+
+function populateScanGroupOptions() {
+  const select = $('#scanGroup');
+  const all = new Set(['Unsorted', ...groups]);
+  select.innerHTML = [...all].sort().map((g) => `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`).join('');
+}
+
+$('#scanNetworkBtn').addEventListener('click', openScanModal);
+$('#scanModalClose').addEventListener('click', () => ($('#scanModalBackdrop').hidden = true));
+$('#scanModalBackdrop').addEventListener('click', (e) => {
+  if (e.target === $('#scanModalBackdrop')) $('#scanModalBackdrop').hidden = true;
+});
+
+function setScanAuthType(type) {
+  scanAuthType = type;
+  document.querySelectorAll('#scanAuthTypeSegmented .segmented-opt').forEach((b) => b.classList.toggle('active', b.dataset.value === type));
+  $('#scanSecretLabel').textContent = type === 'key' ? 'Private key' : 'Password';
+  $('#scanSecret').placeholder = type === 'key' ? 'Paste the private key (e.g. contents of id_ed25519)' : 'Password for SSH login';
+  $('#scanSecret').rows = type === 'key' ? 6 : 1;
+  $('#scanPassphraseRow').hidden = type !== 'key';
+}
+$('#scanAuthTypeSegmented').addEventListener('click', (e) => {
+  const btn = e.target.closest('.segmented-opt');
+  if (btn) setScanAuthType(btn.dataset.value);
+});
+
+$('#scanStartBtn').addEventListener('click', async () => {
+  const statusEl = $('#scanStatus');
+  const cidr = $('#scanCidr').value.trim();
+  const port = Number($('#scanPort').value) || 22;
+  statusEl.textContent = 'Scanning\u2026 this can take a few seconds';
+  statusEl.className = 'test-result';
+  $('#scanResultsSection').hidden = true;
+
+  try {
+    const res = await fetch('/api/scan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cidr, port }),
+    });
+    const body = await res.json();
+    if (!res.ok) throw new Error(body.error || 'Scan failed');
+    scanResults = body.results;
+    renderScanResults();
+    statusEl.textContent = `Found ${scanResults.length} host${scanResults.length === 1 ? '' : 's'} with port ${port} open`;
+    statusEl.classList.add(scanResults.length ? 'ok' : '');
+    $('#scanResultsSection').hidden = false;
+  } catch (err) {
+    statusEl.textContent = err.message;
+    statusEl.classList.add('fail');
+  }
+});
+
+function renderScanResults() {
+  const listEl = $('#scanResultsList');
+  $('#scanResultsCount').textContent = `${scanResults.length} found`;
+  if (!scanResults.length) {
+    listEl.innerHTML = '<p class="muted" style="padding: 12px;">No hosts responded on that port in this range.</p>';
+    return;
+  }
+  listEl.innerHTML = scanResults
+    .map(
+      (r, i) => `
+    <label class="scan-result-row">
+      <input type="checkbox" class="scan-result-check" data-index="${i}" ${r.alreadyAdded ? 'disabled' : ''} />
+      <span class="scan-result-ip">${escapeHtml(r.ip)}</span>
+      ${r.hostname ? `<span class="scan-result-hostname">${escapeHtml(r.hostname)}</span>` : ''}
+      ${r.alreadyAdded ? '<span class="scan-result-badge">already added</span>' : ''}
+    </label>`
+    )
+    .join('');
+}
+
+$('#scanSelectAll').addEventListener('change', (e) => {
+  document.querySelectorAll('.scan-result-check:not(:disabled)').forEach((cb) => (cb.checked = e.target.checked));
+});
+
+$('#scanAddSelectedBtn').addEventListener('click', async () => {
+  const resultEl = $('#scanAddResult');
+  const checked = [...document.querySelectorAll('.scan-result-check:checked')];
+  if (!checked.length) {
+    resultEl.textContent = 'Select at least one host first';
+    resultEl.className = 'test-result fail';
+    return;
+  }
+  const username = $('#scanUsername').value.trim();
+  const secret = $('#scanSecret').value;
+  if (!username || !secret) {
+    resultEl.textContent = 'Username and credential are both required';
+    resultEl.className = 'test-result fail';
+    return;
+  }
+
+  const group = $('#scanGroup').value;
+  const passphrase = $('#scanPassphrase').value;
+  const port = Number($('#scanPort').value) || 22;
+
+  resultEl.textContent = 'Adding\u2026';
+  resultEl.className = 'test-result';
+
+  let created = 0;
+  let failed = 0;
+  for (const cb of checked) {
+    const host = scanResults[Number(cb.dataset.index)];
+    const payload = {
+      name: host.hostname || host.ip,
+      host: host.ip,
+      port,
+      username,
+      group,
+      authType: scanAuthType,
+      secret,
+      passphrase,
+    };
+    try {
+      const res = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      if (res.ok) created++;
+      else failed++;
+    } catch {
+      failed++;
+    }
+  }
+
+  resultEl.textContent = `Added ${created} device${created === 1 ? '' : 's'}` + (failed ? `, ${failed} failed` : '');
+  resultEl.classList.add(failed && !created ? 'fail' : 'ok');
+  if (created) {
+    await loadDevices();
+    $('#scanModalBackdrop').hidden = true;
+  }
+});
+
 $('#addDeviceBtn').addEventListener('click', openAddModal);
 $('#emptyAddBtn').addEventListener('click', openAddModal);
 $('#deviceModalClose').addEventListener('click', () => (deviceModal.hidden = true));
@@ -1499,6 +1739,7 @@ async function checkForUpdate() {
 
 loadVersion();
 checkForUpdate();
+loadAuthStatus();
 loadGroups();
 loadAlertConfig();
 loadCustomCommands();

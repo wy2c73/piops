@@ -20,6 +20,8 @@ dashboard reaches out over SSH to collect stats and to open interactive terminal
 - **Bulk actions** — select multiple devices to assign a group, export to CSV, or delete them all at once
 - **Docker support** — run it as a container instead of a native Node process; see [DOCKER.md](DOCKER.md), including specific steps for a Synology NAS
 - **Update notifications** — an optional badge in the top bar when a newer version exists on your GitHub repo (informational only; see "Updating" in DOCKER.md or INSTALL.md)
+- **Network scanning** — sweep your local subnet for hosts with SSH open and bulk-add whichever you select, using one shared username/credential for the batch
+- **Optional password gate** — Settings → Security lets you put a single shared password in front of the whole dashboard; off by default
 - **In-browser SSH terminal** — click "Terminal" on any card for a real xterm.js session proxied over SSH
 - **"Open in local terminal"** — hands off to your system's default `ssh://` handler, or launch PuTTY / WinSCP directly (pick one in Settings; see "Windows integration" below)
 - **Settings** — Metric/Imperial and °C/°F display preference, view mode, local terminal app, saved per-browser
@@ -100,6 +102,21 @@ sudo chown -R pifleet:pifleet /opt/pi-fleet-dashboard
 cd /opt/pi-fleet-dashboard/backend && sudo -u pifleet npm install --omit=dev
 sudo systemctl enable --now pi-fleet-dashboard
 ```
+
+## Network scanning
+
+"Scan network" in the toolbar sweeps a subnet (auto-detected from the
+dashboard host, or enter your own CIDR) for hosts with an SSH port open --
+a plain TCP connect check, so it works without root and without needing
+raw sockets. It only checks whether the port responds; nothing is added
+until you select which discovered hosts to add and supply credentials.
+Since most home-lab fleets share one login, you provide a single
+username/password-or-key for the whole batch rather than one at a time --
+edit a device afterward if one of them actually needs different
+credentials. Already-added devices show up grayed out in the results so
+you don't accidentally create duplicates. Capped at /20 (1022 addresses)
+to keep scan time reasonable; a full /24 typically finishes in a few
+seconds.
 
 ## CSV device import
 
@@ -238,10 +255,13 @@ timeout error if it ran past the limit you set).
 ## Security notes
 
 - This dashboard has standing SSH credentials to your whole fleet. Run it behind
-  your own network/firewall; it has no built-in login of its own. If you need to
-  expose it beyond your LAN, put it behind a reverse proxy with auth (e.g. Caddy /
-  nginx with basic auth, or a VPN like Tailscale/WireGuard) rather than opening it
-  to the internet directly.
+  your own network/firewall. It now has an optional single-password gate
+  (Settings &rarr; Security, off by default &mdash; see "Setting up the password
+  gate" below), but that's a basic deterrent against casual/unintended LAN
+  access, not a substitute for a real security boundary. If you need to expose
+  it beyond your LAN, put it behind a reverse proxy with its own auth (e.g.
+  Caddy/nginx) or a VPN like Tailscale/WireGuard rather than opening it to the
+  internet directly.
 - Consider creating a dedicated low-privilege SSH user on each Pi for monitoring,
   rather than using a root/admin account, if all you need is read-only stats. The
   service-listing and stat commands don't require root. The terminal feature will
@@ -253,16 +273,35 @@ timeout error if it ran past the limit you set).
 - Reboot/shutdown/service-restart/custom-command actions mean anyone with access
   to this dashboard can run whatever those sudoers rules and custom commands
   allow, on every device with a matching entry. This is unchanged in spirit from
-  the terminal feature (both ultimately run as whatever the SSH account can do),
-  but it's worth re-reading "no built-in login" above with that in mind if you're
-  considering exposing this beyond a trusted LAN.
+  the terminal feature (both ultimately run as whatever the SSH account can do)
+  &mdash; worth turning the password gate on if you're not the only one with LAN
+  access, and worth a VPN/reverse-proxy setup rather than a bare port-forward if
+  you ever want to reach this away from home.
+- The password gate's session cookie is sent in plain HTTP unless you put a TLS
+  reverse proxy in front of this yourself &mdash; it isn't marked `Secure`, since
+  that would silently break login for the common case of running this over plain
+  HTTP on a LAN. Treat it accordingly if you do expose this beyond a trusted network.
+
+## Setting up the password gate
+
+Off by default so upgrading doesn't suddenly lock you out. To turn it on: Settings
+&rarr; Security &rarr; On, enter a password (8+ characters), Save. From then on,
+anyone opening the dashboard sees a login page first, and a "Log out" button
+appears in the top bar. To change the password later, enter your current
+password plus a new one and save; to turn it off, switch back to Off and confirm
+with your current password.
+
+This is a single shared password, not a user-account system &mdash; there's no
+separate login per person, and no audit trail of who did what. It's meant to
+keep the dashboard from being casually reachable by anyone else on your LAN
+(a housemate, a guest on the WiFi, another device that gets compromised), not
+to be a complete access-control solution on its own.
 
 ## What's next
 
-This now covers device management, live stats, service/port visibility, SSH
-terminals, alerting, Pi-specific health signals, and fleet actions. The two
-biggest things still on the table if you want them later: historical charts
-(persisting stats to disk/SQLite instead of memory-only) and
-authentication/login for the dashboard itself — worth prioritizing that last
-one in particular if you ever plan to expose this beyond a trusted LAN, given
-how much this dashboard can now do to your fleet.
+This now covers device management (including network scanning), live stats,
+service/port visibility, SSH terminals, alerting, Pi-specific health signals,
+fleet actions, Docker deployment, update notifications, and an optional
+password gate. The main thing still on the table if you want it later:
+historical charts (persisting stats to disk/SQLite instead of memory-only,
+for real trend lines instead of just the current snapshot).

@@ -19,6 +19,9 @@ const backupRouter = require('./routes/backup');
 const groupsRouter = require('./routes/groups');
 const alertsRouter = require('./routes/alerts');
 const commandsRouter = require('./routes/commands');
+const scanRouter = require('./routes/scan');
+const authRouter = require('./routes/auth');
+const auth = require('./lib/auth');
 const { checkForUpdate } = require('./lib/updateCheck');
 const poller = require('./poller');
 const wsTerminal = require('./wsTerminal');
@@ -32,11 +35,26 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '5mb' }));
 
+// Paths reachable without a session even when the password gate is on --
+// the login page itself, its supporting assets, and health/version info
+// that isn't sensitive.
+const PUBLIC_PATHS = new Set(['/login.html', '/style.css', '/api/health', '/api/version']);
+
+app.use('/api/auth', authRouter);
+app.use((req, res, next) => {
+  if (PUBLIC_PATHS.has(req.path) || auth.isAuthenticated(req)) return next();
+  if (req.path.startsWith('/api/') || req.path.startsWith('/ws/')) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+  return res.redirect('/login.html');
+});
+
 app.use('/api/devices', devicesRouter);
 app.use('/api/backup', backupRouter);
 app.use('/api/groups', groupsRouter);
 app.use('/api/alerts', alertsRouter);
 app.use('/api/commands', commandsRouter);
+app.use('/api/scan', scanRouter);
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 app.get('/api/version', (req, res) => res.json({ version: require('./package.json').version }));
 app.get('/api/version/check', async (req, res) => {
@@ -79,6 +97,11 @@ statsWss.on('connection', (ws) => {
 wsTerminal.attach(terminalWss);
 
 server.on('upgrade', (req, socket, head) => {
+  if (!auth.isAuthenticated(req)) {
+    socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+    socket.destroy();
+    return;
+  }
   const url = new URL(req.url, 'http://localhost');
   if (url.pathname === '/ws/stats') {
     statsWss.handleUpgrade(req, socket, head, (ws) => statsWss.emit('connection', ws, req));

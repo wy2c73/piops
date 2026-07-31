@@ -22,6 +22,8 @@
     <span id="onlineCount">0 online</span>
   </div>
   <button class="btn btn-ghost" id="settingsBtn" title="Settings" aria-label="Settings">&#9881;</button>
+  <button class="btn btn-ghost" id="logoutBtn" hidden>Log out</button>
+  <button class="btn btn-ghost" id="scanNetworkBtn">Scan network</button>
   <button class="btn btn-primary" id="addDeviceBtn">+ Add device</button>
 </header>
 
@@ -151,6 +153,29 @@
       <hr class="modal-divider" />
 
       <div class="form-row">
+        <label>Security</label>
+        <p class="form-note">Adds a password gate in front of this whole dashboard. Off by default. This is a single shared password, not a full user system &mdash; meant for keeping this off casual/unintended access on your LAN, not for exposing it to the internet on its own.</p>
+        <div class="segmented" id="authEnabledSegmented">
+          <button type="button" class="segmented-opt" data-value="on">On</button>
+          <button type="button" class="segmented-opt" data-value="off">Off</button>
+        </div>
+      </div>
+      <div class="form-row">
+        <label for="authCurrentPassword" id="authCurrentPasswordLabel" hidden>Current password</label>
+        <input id="authCurrentPassword" type="password" hidden />
+      </div>
+      <div class="form-row">
+        <label for="authNewPassword" id="authNewPasswordLabel">New password</label>
+        <input id="authNewPassword" type="password" placeholder="At least 8 characters" />
+      </div>
+      <div class="form-actions">
+        <span class="test-result" id="authResult"></span>
+        <button type="button" class="btn btn-primary" id="authSaveBtn">Save security settings</button>
+      </div>
+
+      <hr class="modal-divider" />
+
+      <div class="form-row">
         <label>Import devices from CSV</label>
         <p class="form-note">Columns: name, host, port, username, group, authType (password or key), secret, passphrase. Existing devices (matched by host/port/username) are skipped.</p>
         <input id="csvFile" type="file" accept=".csv,text/csv" />
@@ -214,6 +239,74 @@
       <div class="form-actions">
         <span class="test-result" id="importResult"></span>
         <button type="button" class="btn btn-ghost" id="importBtn">Restore devices</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Scan network modal -->
+<div class="modal-backdrop" id="scanModalBackdrop" hidden>
+  <div class="modal modal-wide">
+    <div class="modal-header">
+      <h2>Scan network</h2>
+      <button class="modal-close" id="scanModalClose">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p class="form-note">Looks for devices with an open SSH port on your local network. This only checks whether the port responds &mdash; it doesn't try to log in, so nothing is added until you select hosts below and provide credentials.</p>
+      <div class="form-row two-col">
+        <div>
+          <label for="scanCidr">Range (CIDR)</label>
+          <input id="scanCidr" type="text" placeholder="192.168.1.0/24" />
+        </div>
+        <div>
+          <label for="scanPort">Port</label>
+          <input id="scanPort" type="number" value="22" />
+        </div>
+      </div>
+      <div class="form-actions">
+        <span class="test-result" id="scanStatus"></span>
+        <button type="button" class="btn btn-primary" id="scanStartBtn">Scan</button>
+      </div>
+
+      <div id="scanResultsSection" hidden>
+        <hr class="modal-divider" />
+        <div class="services-toolbar">
+          <label class="checkbox-row" style="margin: 0;"><input type="checkbox" id="scanSelectAll" /> Select all</label>
+          <span class="muted" id="scanResultsCount"></span>
+        </div>
+        <div class="scan-results-list" id="scanResultsList"></div>
+
+        <hr class="modal-divider" />
+        <p class="form-note">These credentials are used for every host you've selected above &mdash; handy when your fleet shares one username/password or key. You can always edit a device afterward to give it different credentials.</p>
+        <div class="form-row">
+          <label for="scanUsername">Username</label>
+          <input id="scanUsername" placeholder="pi" />
+        </div>
+        <div class="form-row two-col">
+          <div>
+            <label for="scanGroup">Group</label>
+            <select id="scanGroup"></select>
+          </div>
+          <div>
+            <label>Authentication</label>
+            <div class="segmented" id="scanAuthTypeSegmented">
+              <button type="button" class="segmented-opt active" data-value="password">Password</button>
+              <button type="button" class="segmented-opt" data-value="key">Private key</button>
+            </div>
+          </div>
+        </div>
+        <div class="form-row">
+          <label for="scanSecretLabel" id="scanSecretLabel">Password</label>
+          <textarea id="scanSecret" rows="1" placeholder="Password for SSH login"></textarea>
+        </div>
+        <div class="form-row" id="scanPassphraseRow" hidden>
+          <label for="scanPassphrase">Key passphrase (optional)</label>
+          <input id="scanPassphrase" type="password" />
+        </div>
+        <div class="form-actions">
+          <span class="test-result" id="scanAddResult"></span>
+          <button type="button" class="btn btn-primary" id="scanAddSelectedBtn">Add selected devices</button>
+        </div>
       </div>
     </div>
   </div>

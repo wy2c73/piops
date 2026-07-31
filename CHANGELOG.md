@@ -1,5 +1,33 @@
 # Changelog
 
+## 1.9.0
+
+- **Network scanning**: "Scan network" in the toolbar sweeps a subnet
+  (auto-detected, or a CIDR you enter) for hosts with SSH open, via a
+  plain TCP connect scan -- no root, no raw sockets. Verified against a
+  real listener: found the one open host among 254 addresses scanned in
+  ~2.8s with zero false positives. Discovered hosts can be bulk-added
+  with one shared username/credential set (most home-lab fleets share a
+  login), and already-added devices are flagged so you don't create
+  duplicates. Capped at /20 (1022 addresses) to keep scan time bounded.
+- **Optional password gate** (Settings -> Security): a single shared
+  password in front of the whole dashboard, off by default so existing
+  installs aren't locked out on upgrade. Scrypt password hashing,
+  HMAC-signed stateless session tokens (survive a server restart without
+  forcing re-login), a themed login page, and protection on every API
+  route, static page, and both WebSocket upgrades (which otherwise
+  would've bypassed the gate entirely). Verified end-to-end: disabled by
+  default, enabling requires no prior password, wrong passwords rejected,
+  valid sessions grant access, protected routes 401 without one, the
+  login page itself stays reachable, WebSocket upgrades reject without a
+  session, and disabling/changing the password correctly requires both
+  a valid session and the current password.
+- Updated security notes throughout the README to reflect the new gate
+  (and its real limits -- single shared password, not a user system, and
+  the session cookie isn't marked Secure since that would break plain-HTTP
+  LAN usage, so this doesn't substitute for a VPN/reverse-proxy if
+  exposed beyond your LAN).
+
 ## 1.8.0
 
 - **Update notifications**: a new `GET /api/version/check` endpoint

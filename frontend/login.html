@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pi Fleet Dashboard &mdash; Sign in</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div class="login-page">
+  <div class="login-box">
+    <div class="login-brand">
+      <span class="brand-led led-online"></span>
+      <span class="brand-name">PI FLEET DASHBOARD</span>
+    </div>
+    <form id="loginForm">
+      <div class="form-row">
+        <label for="loginPassword">Password</label>
+        <input id="loginPassword" type="password" autofocus required />
+      </div>
+      <p class="test-result fail" id="loginError" hidden></p>
+      <button type="submit" class="btn btn-primary login-submit">Sign in</button>
+    </form>
+  </div>
+</div>
+
+<script>
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const password = document.getElementById('loginPassword').value;
+  const errorEl = document.getElementById('loginError');
+  errorEl.hidden = true;
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password }),
+    });
+    const body = await res.json();
+    if (!res.ok) throw new Error(body.error || 'Sign in failed');
+    window.location.href = '/';
+  } catch (err) {
+    errorEl.textContent = err.message;
+    errorEl.hidden = false;
+  }
+});
+</script>
+</body>
+</html>

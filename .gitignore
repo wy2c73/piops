@@ -4,5 +4,7 @@ node_modules/
 **/data/groups.json
 **/data/alerts.json
 **/data/customCommands.json
+**/data/auth.json
+**/data/.session-secret
 /data/
 *.log
