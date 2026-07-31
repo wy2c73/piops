@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.9.2
+
+- Added real screenshots to `docs/screenshots/` (card view, list view,
+  detail view, terminal) -- the README's image references now resolve
+  instead of showing as broken links on GitHub.
+
 ## 1.9.1
 
 - Rewrote the README's opening for a stronger pitch and added an honest
