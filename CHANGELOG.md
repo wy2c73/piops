@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.9.3
+
+- Replaced `docs/screenshots/card-view.png` with a fuller capture showing
+  the whole fleet grid (6 devices, a mix of online/offline/N/A statuses,
+  and the bulk-selection bar) instead of a single card.
+
 ## 1.9.2
 
 - Added real screenshots to `docs/screenshots/` (card view, list view,
