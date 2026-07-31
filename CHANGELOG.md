@@ -1,5 +1,29 @@
 # Changelog
 
+## 1.8.0
+
+- **Update notifications**: a new `GET /api/version/check` endpoint
+  compares the running version against `package.json` on your GitHub
+  repo's `main` branch (via `raw.githubusercontent.com`, no auth needed
+  for public repos) and shows a small "vX.Y.Z available" badge in the top
+  bar when one exists. Purely informational -- disabled by default until
+  you set `GITHUB_REPO=owner/repo`, and never applies anything on its
+  own. Verified the version-comparison logic (including the
+  numeric-vs-string edge case, e.g. 1.7.10 > 1.7.9), the disabled state,
+  and both a real successful fetch and a real failure case against actual
+  GitHub URLs.
+- **Docker auto-update pipeline (opt-in)**: added
+  `.github/workflows/docker-publish.yml`, which builds and pushes a
+  multi-arch image to GHCR on every push to `main`. Documented in
+  DOCKER.md alongside Watchtower as the piece that actually auto-pulls
+  and restarts the container, with the trade-offs spelled out clearly
+  (no review gate between a push and a live deployment with fleet-wide
+  SSH/reboot access) so it's an informed opt-in rather than a default.
+  Native (non-Docker) installs intentionally do not get an equivalent
+  auto-apply mechanism -- safely restarting a live Node process from
+  within itself is meaningfully riskier than Docker's container-swap
+  model, so that install path stays notification-only.
+
 ## 1.7.0
 
 - **Docker support**: added `Dockerfile` and `docker-compose.yml` as an

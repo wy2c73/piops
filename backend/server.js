@@ -19,6 +19,7 @@ const backupRouter = require('./routes/backup');
 const groupsRouter = require('./routes/groups');
 const alertsRouter = require('./routes/alerts');
 const commandsRouter = require('./routes/commands');
+const { checkForUpdate } = require('./lib/updateCheck');
 const poller = require('./poller');
 const wsTerminal = require('./wsTerminal');
 
@@ -38,6 +39,13 @@ app.use('/api/alerts', alertsRouter);
 app.use('/api/commands', commandsRouter);
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 app.get('/api/version', (req, res) => res.json({ version: require('./package.json').version }));
+app.get('/api/version/check', async (req, res) => {
+  try {
+    res.json(await checkForUpdate());
+  } catch (err) {
+    res.status(502).json({ error: err.message });
+  }
+});
 
 // Serve the static frontend (no build step needed). no-cache forces the
 // browser to revalidate on every load instead of serving a stale copy of

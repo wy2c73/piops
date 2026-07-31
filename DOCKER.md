@@ -100,6 +100,8 @@ undecryptable (see the Troubleshooting section in the main README).
 
 ## Updating
 
+### Manual (always available, no setup required)
+
 ```bash
 cd pi-fleet-dashboard
 git pull   # or copy in the new files
@@ -108,6 +110,75 @@ docker compose up -d --build
 
 The `data/` volume is untouched by this -- your devices, groups, alerts,
 and custom commands all carry over.
+
+### Getting notified when an update exists
+
+The dashboard can check your GitHub repo's `main` branch and show a small
+"vX.Y.Z available" badge next to the version number in the top bar --
+purely informational, it never applies anything on its own. Set the
+`GITHUB_REPO` environment variable (in `docker-compose.yml`, or
+`PORT`/`HOST` alongside it) to `yourusername/pi-fleet-dashboard`. Leave it
+unset and this feature just stays off -- no error, no behavior change.
+
+### Fully automatic updates (opt-in, Docker only)
+
+This is a bigger decision than the other options above, worth being
+deliberate about: it means anything pushed to your repo's `main` branch
+gets built and deployed with no manual review step in between. For a tool
+that holds SSH credentials to your whole fleet and can reboot/shutdown
+devices, that's a real trade-off against convenience -- reasonable for a
+personal home-lab setup where you're the only one pushing commits, less
+so if you'd want a chance to review changes first.
+
+If you want it anyway, two pieces:
+
+1. **Publish images automatically.** This repo includes
+   `.github/workflows/docker-publish.yml`, which builds and pushes an
+   image to GitHub Container Registry (`ghcr.io`) on every push to `main`.
+   It needs no secrets beyond what GitHub Actions provides automatically --
+   just push this repo to your own GitHub and make sure Actions is enabled
+   (Settings &rarr; Actions &rarr; General). By default GHCR packages are
+   private; make yours public (package Settings &rarr; Change visibility)
+   or Watchtower won't be able to pull it without additional auth setup.
+
+2. **Auto-pull with Watchtower.** Point `docker-compose.yml` at the
+   published image instead of building locally, and add
+   [Watchtower](https://containrrr.dev/watchtower/) as a second service
+   to poll for and apply new images:
+
+   ```yaml
+   services:
+     pi-fleet-dashboard:
+       image: ghcr.io/yourusername/pi-fleet-dashboard:latest
+       # remove the "build: ." line if it's still there
+       container_name: pi-fleet-dashboard
+       restart: unless-stopped
+       ports:
+         - "3000:3000"
+       volumes:
+         - ./data:/app/backend/data
+       environment:
+         - PORT=3000
+         - HOST=0.0.0.0
+         - GITHUB_REPO=yourusername/pi-fleet-dashboard
+
+     watchtower:
+       image: containrrr/watchtower
+       container_name: watchtower
+       restart: unless-stopped
+       volumes:
+         - /var/run/docker.sock:/var/run/docker.sock
+       command: --interval 3600 pi-fleet-dashboard
+       # checks hourly and only touches the pi-fleet-dashboard container,
+       # not anything else you're running
+   ```
+
+   Run `docker compose up -d` after this change. Watchtower will now pull
+   and swap in a new image whenever one appears on GHCR, restarting the
+   container in the process (a few seconds of downtime, and any
+   in-progress SSH terminal sessions or custom commands would be
+   interrupted -- something to keep in mind if you schedule this for
+   times you're likely to be using it).
 
 ## Environment variables
 
@@ -120,6 +191,7 @@ examples are already commented out there):
 | `HOST` | `0.0.0.0` | Bind address (leave as-is; this is what makes it reachable from outside the container) |
 | `POLL_INTERVAL_MS` | `15000` | How often each device is polled for stats |
 | `POLL_CONCURRENCY` | `5` | Max simultaneous SSH connections during a poll cycle |
+| `GITHUB_REPO` | *(unset, disabled)* | `owner/repo` -- enables the "update available" badge in the UI by checking that repo's `main` branch |
 
 ## A note on quick actions (reboot/shutdown/service restart/custom commands)
 

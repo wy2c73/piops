@@ -153,6 +153,15 @@ overwrite the `data/` directory. Back that directory up before major
 upgrades regardless &mdash; or use Settings &rarr; Export backup, which is the
 portable, passphrase-protected way to do it.
 
+To get a small "update available" badge in the dashboard's top bar when a
+newer version exists on your GitHub repo, set `GITHUB_REPO` before starting
+it, e.g. add `Environment=GITHUB_REPO=yourusername/pi-fleet-dashboard` to
+the systemd service file above. This only checks and displays a
+notification &mdash; it never updates anything automatically. There's no
+equivalent automatic-update pipeline for native installs (unlike the
+Docker + Watchtower option in [DOCKER.md](DOCKER.md)); applying the
+upgrade steps above is still a manual step.
+
 ## Troubleshooting
 
 - **Blank page / nothing loads**: check `node server.js`'s console output

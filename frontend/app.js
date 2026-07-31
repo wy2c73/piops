@@ -1478,7 +1478,27 @@ async function loadVersion() {
   }
 }
 
+// Informational only -- never applies anything. Disabled by default until
+// GITHUB_REPO is set on the server (see README/DOCKER.md).
+async function checkForUpdate() {
+  try {
+    const res = await fetch('/api/version/check');
+    const info = await res.json();
+    const badge = $('#updateBadge');
+    if (info.updateAvailable && info.latest) {
+      badge.textContent = `v${info.latest} available`;
+      badge.href = info.releaseNotesUrl || '#';
+      badge.hidden = false;
+    } else {
+      badge.hidden = true;
+    }
+  } catch (err) {
+    console.error('Update check failed:', err);
+  }
+}
+
 loadVersion();
+checkForUpdate();
 loadGroups();
 loadAlertConfig();
 loadCustomCommands();

@@ -71,6 +71,17 @@ button { font-family: inherit; }
   padding: 1px 5px;
 }
 
+.update-badge {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+  padding: 1px 6px;
+  text-decoration: none;
+}
+.update-badge:hover { background: rgba(94, 177, 239, 0.1); }
+
 .brand-led {
   width: 9px;
   height: 9px;
