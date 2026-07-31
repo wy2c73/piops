@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.9.1
+
+- Rewrote the README's opening for a stronger pitch and added an honest
+  comparison table against Grafana+Prometheus, Netdata, and Uptime Kuma
+  (agentless setup, Pi-specific under-voltage detection, and being a
+  control panel rather than just a viewer are the genuine differentiators
+  -- the comparison also calls out where those other tools are the better
+  choice, e.g. Grafana/Netdata for deep long-running metrics at scale).
+- Added screenshot placeholders (`docs/screenshots/*.png`, referenced from
+  the main README) plus a capture guide (`docs/screenshots/README.md`)
+  spelling out exactly what to capture and the expected filenames --
+  no code changes, just needs real screenshots dropped in.
+
 ## 1.9.0
 
 - **Network scanning**: "Scan network" in the toolbar sweeps a subnet

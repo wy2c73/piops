@@ -1,8 +1,63 @@
 # Pi Fleet Dashboard
 
-A self-hosted, agentless monitoring dashboard for a fleet of Raspberry Pis (or any
-SSH-reachable Linux boxes). No software to install on the monitored devices — the
-dashboard reaches out over SSH to collect stats and to open interactive terminals.
+A self-hosted, agentless control panel for a fleet of Raspberry Pis (or any
+SSH-reachable Linux box): live stats, service and open-port visibility, an
+in-browser terminal, one-click reboot/restart/custom actions, alerting, and
+Pi-specific health signals like under-voltage detection — with **nothing to
+install on the monitored devices**. It reaches them the same way you already
+do: over SSH.
+
+<!--
+  Screenshots go here once captured -- see docs/screenshots/README.md for
+  exactly what to capture and suggested filenames. Once the files exist at
+  these paths, these will render automatically on GitHub.
+-->
+<p align="center">
+  <img src="docs/screenshots/card-view.png" alt="Card view showing several Raspberry Pi devices with live CPU, memory, disk, and temperature stats" width="800" /><br/>
+  <em>Card view — a fleet at a glance, including under-voltage/throttling status</em>
+</p>
+
+<details>
+<summary>More screenshots (list view, detail drawer, terminal)</summary>
+<br/>
+
+<p align="center">
+  <img src="docs/screenshots/list-view.png" alt="Dense list/table view of the same fleet" width="800" /><br/>
+  <em>List view — the same fleet, dense-table style</em>
+</p>
+<p align="center">
+  <img src="docs/screenshots/detail-view.png" alt="Device detail drawer showing stats, services, and ports" width="800" /><br/>
+  <em>Device detail drawer — stats, services, ports, and quick actions in one place</em>
+</p>
+<p align="center">
+  <img src="docs/screenshots/terminal.png" alt="In-browser SSH terminal session" width="800" /><br/>
+  <em>In-browser SSH terminal, no separate client needed</em>
+</p>
+
+</details>
+
+## Why this instead of Grafana, Uptime Kuma, or Netdata?
+
+Those are all good tools built for a different job. The honest comparison:
+
+| | Pi Fleet Dashboard | Grafana + Prometheus | Netdata | Uptime Kuma |
+|---|---|---|---|---|
+| Agent required on each device | **No** — SSH only | Yes (node_exporter) | Yes (netdata agent) | No, but HTTP/TCP checks only |
+| Fleet-wide system stats (CPU/mem/disk/temp) | Yes | Yes | Yes, in depth | No |
+| Raspberry Pi under-voltage/throttling detection | **Yes** | No | No | No |
+| Reboot / restart services / run commands | **Yes** | No | No | No |
+| In-browser SSH terminal | **Yes** | No | No | No |
+| Setup for a handful of Pis | One `npm install` or container | Prometheus + Grafana + an exporter per node | An agent per node (or their cloud) | Lightweight, but monitoring-only |
+
+The short version: if you already have SSH access to your fleet (you do —
+that's how you set them up), this needs nothing further installed on any of
+them. Grafana/Prometheus and Netdata are more powerful for deep, long-running
+metrics at scale, but that power comes with real setup cost that doesn't pay
+off for a home-lab handful of Pis. Uptime Kuma is excellent at what it does
+(is this reachable?) but doesn't touch system stats or let you act on what
+it finds. This dashboard is aimed squarely at the space between "nothing" and
+"a full observability stack": agentless, Pi-aware, and a control panel rather
+than just a viewer.
 
 ## Features
 
