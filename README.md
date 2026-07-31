@@ -77,6 +77,7 @@ than just a viewer.
 - **Update notifications** — an optional badge in the top bar when a newer version exists on your GitHub repo (informational only; see "Updating" in DOCKER.md or INSTALL.md)
 - **Network scanning** — sweep your local subnet for hosts with SSH open and bulk-add whichever you select, using one shared username/credential for the batch
 - **Optional password gate** — Settings → Security lets you put a single shared password in front of the whole dashboard; off by default
+- **Mobile-friendly** — checking your fleet from a phone works: wrapping toolbars, scrollable tables instead of squished columns, and near-fullscreen modals on narrow screens
 - **In-browser SSH terminal** — click "Terminal" on any card for a real xterm.js session proxied over SSH
 - **"Open in local terminal"** — hands off to your system's default `ssh://` handler, or launch PuTTY / WinSCP directly (pick one in Settings; see "Windows integration" below)
 - **Settings** — Metric/Imperial and °C/°F display preference, view mode, local terminal app, saved per-browser

@@ -146,11 +146,11 @@ button { font-family: inherit; }
 /* ---- Main / toolbar ---- */
 .main { max-width: 1280px; margin: 0 auto; padding: 20px 24px 60px; }
 
-.toolbar { display: flex; gap: 10px; margin-bottom: 18px; align-items: center; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; align-items: center; }
 .select-all-row { margin-bottom: 0; white-space: nowrap; flex-shrink: 0; }
 
 .bulk-bar {
-  display: flex; align-items: center; gap: 10px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
   background: var(--surface-raised); border: 1px solid var(--accent); border-radius: var(--radius);
   padding: 10px 14px; margin-bottom: 14px; font-size: 13px;
 }
@@ -200,8 +200,9 @@ button { font-family: inherit; }
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
-.list-table { width: 100%; border-collapse: collapse; font-size: 12.5px; table-layout: fixed; }
+.list-table { width: 100%; min-width: 760px; border-collapse: collapse; font-size: 12.5px; table-layout: fixed; }
 .list-table th {
   text-align: left; padding: 10px 12px; font-family: var(--mono); font-size: 10.5px;
   text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);
@@ -461,12 +462,12 @@ textarea { resize: vertical; font-family: var(--mono); }
 .stat-box .label { font-size: 10.5px; color: var(--text-muted); font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.06em; }
 .stat-box .value { font-size: 16px; font-weight: 600; margin-top: 4px; font-family: var(--mono); }
 
-.detail-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 14px; }
+.detail-tabs { display: flex; flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 14px; }
 .tab-btn { background: none; border: none; color: var(--text-muted); padding: 8px 12px; cursor: pointer; font-size: 13px; border-bottom: 2px solid transparent; }
 .tab-btn.active { color: var(--text); border-bottom-color: var(--accent); }
 
 .services-toolbar { display: flex; gap: 8px; margin-bottom: 10px; }
-.services-list { overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius); }
+.services-list { overflow-y: auto; overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid var(--border); border-radius: var(--radius); }
 
 .actions-section { margin-bottom: 18px; }
 .actions-section label { display: block; font-size: 11px; font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 8px; }
@@ -486,7 +487,7 @@ textarea { resize: vertical; font-family: var(--mono); }
   color: var(--text-muted);
 }
 
-.services-table { width: 100%; border-collapse: collapse; font-size: 12.5px; table-layout: fixed; }
+.services-table { width: 100%; min-width: 420px; border-collapse: collapse; font-size: 12.5px; table-layout: fixed; }
 .services-table thead { position: sticky; top: 0; background: var(--surface); z-index: 1; }
 .services-table th {
   text-align: left; padding: 8px 12px; font-family: var(--mono); font-size: 10.5px;
@@ -525,6 +526,43 @@ textarea { resize: vertical; font-family: var(--mono); }
 .toast.error { border-color: var(--bad); color: var(--bad); }
 
 @media (max-width: 640px) {
-  .topbar { flex-wrap: wrap; }
+  /* ---- Layout breathing room ---- */
+  .topbar { flex-wrap: wrap; padding: 12px 14px; gap: 10px; }
+  .brand-name { font-size: 11px; letter-spacing: 0.06em; }
+  .topbar-meta { flex-basis: 100%; order: 3; }
+  .main { padding: 14px 12px 40px; }
   .two-col { grid-template-columns: 1fr; }
+
+  /* ---- Modals: use nearly the full screen instead of fixed desktop widths ---- */
+  .modal-backdrop { padding: 8px; }
+  .modal { max-width: 100%; }
+  .modal-wide, .modal-terminal { height: 92vh; }
+  @supports (height: 100dvh) {
+    .modal-wide, .modal-terminal { height: 92dvh; } /* accounts for mobile browsers' collapsing address bar */
+  }
+
+  /* ---- Touch targets ---- */
+  .btn { padding: 10px 14px; }
+  .btn-sm { padding: 7px 11px; }
+  .card-select input, .device-select { width: 18px; height: 18px; }
+
+  /* ---- Settings threshold rows: stack instead of cramming label+input+unit into one line ---- */
+  .threshold-row { flex-wrap: wrap; }
+  .threshold-row .threshold-label,
+  .threshold-row .checkbox-row { flex-basis: 100%; }
+
+  /* ---- Detail stat grid: fewer, wider columns reads better on a phone than 4-5 tiny ones ---- */
+  .detail-stats { grid-template-columns: repeat(2, 1fr); }
+
+  /* ---- Bulk bar: let the group-assign row wrap onto its own line under the count ---- */
+  .bulk-bar select { flex-basis: 100%; order: 1; }
+  #bulkCount { flex-basis: 100%; order: 0; }
+}
+
+@media (max-width: 420px) {
+  /* Smallest phones: the settings toggles/segmented controls can still be
+     tight even after the 640px pass -- a bit more room here. */
+  .form-row.two-col { gap: 6px; }
+  .segmented-opt { padding: 6px 10px; font-size: 12px; }
+  .card-title { font-size: 14px; }
 }

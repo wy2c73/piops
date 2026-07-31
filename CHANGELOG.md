@@ -1,5 +1,34 @@
 # Changelog
 
+## 1.10.0
+
+- **Mobile layout pass.** Found and fixed several real issues by auditing
+  the CSS directly (couldn't get a real browser rendering in this
+  sandbox to verify visually -- see note below):
+  - The toolbar and bulk-action bar had no `flex-wrap`, so they'd overflow
+    horizontally on narrow screens instead of wrapping.
+  - The biggest one: the List View table (13 columns) and the Services
+    table both used `table-layout: fixed; width: 100%` with no minimum
+    width, so on a phone they'd squish every column into illegibility
+    (e.g. a 3%-wide checkbox column) instead of actually triggering the
+    horizontal scroll that was already set up on their containers. Fixed
+    with a sensible `min-width` on each table so mobile now scrolls
+    sideways with legible columns, same as desktop.
+  - Modals now use nearly the full screen on narrow viewports instead of
+    fixed desktop widths/heights, with a `dvh`-aware height for the
+    terminal/detail drawers to avoid mobile browsers' collapsing address
+    bar clipping content.
+  - Settings threshold rows, the detail stat grid, and the bulk-bar's
+    group-assign controls now stack instead of cramming into one line.
+  - Slightly larger touch targets for buttons and selection checkboxes.
+- **Caveat worth knowing**: I could not get an actual browser to render
+  this at mobile viewport width in this environment (tried Puppeteer and
+  a direct Chromium install; neither could complete here) to visually
+  confirm these fixes. Everything above is based on direct CSS review,
+  not a real screenshot -- if anything looks off on an actual phone,
+  a screenshot would help fix it fast, the same way earlier LED/icon
+  color bugs were only caught that way rather than through code review.
+
 ## 1.9.3
 
 - Replaced `docs/screenshots/card-view.png` with a fuller capture showing
