@@ -341,27 +341,22 @@ button { font-family: inherit; }
 
 .modal-body { padding: 18px 20px; overflow-y: auto; }
 
-/* The detail drawer (Add/Edit and Settings use plain .modal-body scrolling
-   as a whole; this one is taller and has its own inner list, so instead of
-   two nested scrollbars, only the tab's list scrolls -- the header, stats,
-   and tabs stay put. */
-.modal-wide .modal-body {
-  display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden;
-}
-.modal-wide .detail-stats,
-.modal-wide .detail-tabs { flex-shrink: 0; }
-.modal-wide .tab-panel {
-  flex: 1; min-height: 0; overflow: hidden;
-  display: flex; flex-direction: column;
-}
-.modal-wide .services-toolbar { flex-shrink: 0; }
-.modal-wide .services-list,
-.modal-wide .ports-list {
-  flex: 1; min-height: 0; overflow-y: auto;
-}
-.modal-wide #tabActions:not([hidden]) {
-  flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden;
-  display: flex; flex-direction: column;
+/* The detail drawer's stat grid + tabs + list content all scroll as one
+   simple block, on every screen size. An earlier version tried to keep
+   the header fixed and scroll only the inner list via a flex-height
+   chain -- that depends on the header always leaving "enough" room for
+   the list, which broke twice in different ways: on narrow phones (the
+   2-column stat grid alone could eat the whole budget) and on
+   vertically-short laptop screens (a widescreen laptop has plenty of
+   width but not much height, and 78vh of a short window just isn't
+   enough). A single scroll region can't have that failure mode. The tab
+   bar uses position:sticky instead of the old flex trick to stay visible
+   while scrolling -- sticky doesn't need to know the header's height in
+   advance, so it works regardless of how tall the stat grid gets. */
+.modal-wide .modal-body { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.modal-wide .detail-tabs {
+  position: sticky; top: 0; z-index: 2;
+  background: var(--surface); padding-top: 2px;
 }
 
 .form-row { margin-bottom: 14px; display: flex; flex-direction: column; gap: 6px; }
@@ -545,28 +540,6 @@ textarea { resize: vertical; font-family: var(--mono); }
   .modal-backdrop { padding: 8px; }
   .modal { max-width: 100%; }
   .modal-wide, .modal-terminal { height: 92vh; }
-
-  /* The "only the inner list scrolls, stats/tabs stay fixed" pattern above
-     assumes the stats+tabs header leaves enough room for the list. On a
-     phone the stat grid is forced to 2 columns (5 rows for ~10 boxes),
-     which can eat most of a 92vh modal on its own -- squeezing the
-     services/ports/actions content to near-zero height instead of just
-     scrolling internally. Simpler and robust regardless of header height:
-     let the whole modal body scroll as one unit on mobile instead. */
-  .modal-wide .modal-body {
-    display: block; overflow-y: auto; overflow-x: hidden;
-    -webkit-overflow-scrolling: touch;
-  }
-  .modal-wide .tab-panel {
-    flex: none; min-height: 0; overflow: visible; display: block;
-  }
-  .modal-wide .services-list,
-  .modal-wide .ports-list {
-    flex: none; overflow: visible; max-height: none;
-  }
-  .modal-wide #tabActions:not([hidden]) {
-    flex: none; overflow: visible; display: block;
-  }
 
   /* ---- Services table: stack instead of horizontally scrolling a
      3-column table crammed into a phone width. Classic CSS-only

@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.11.1
+
+- Fixed the device detail drawer getting cut off on vertically-short
+  screens (reported on a widescreen laptop -- plenty of width, not much
+  height -- where the same drawer rendered fine on a larger external
+  monitor). This was the same underlying design flaw as the earlier
+  mobile fixes (1.10.2/1.10.3), just triggered by a different dimension:
+  the drawer kept its stat grid + tabs fixed and only scrolled the inner
+  list, which depends on the fixed header always leaving "enough" room
+  for the list -- true on a tall monitor, false on a short one (a 78vh
+  modal on a short window just doesn't have much room left over after
+  the header).
+  Rather than add another one-off breakpoint, replaced the whole
+  fixed-header design everywhere (all screen sizes, not just mobile) with
+  one that can't have this failure mode at all: the entire drawer now
+  scrolls as a single block, with the tab bar kept visible via
+  `position: sticky` instead of a flex-height budget. Sticky positioning
+  doesn't need to know the header's height in advance, so it can't run
+  out of room regardless of viewport width or height. This also let me
+  delete the separate mobile-only override from 1.10.2 entirely, since
+  the universal version now covers that case too -- less code, and one
+  fewer place for this exact bug to come back a third time.
+
 ## 1.11.0
 
 - Added Start and Stop buttons alongside Restart on every service row.
