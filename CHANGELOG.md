@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.10.3
+
+- Fixed the Services tab requiring horizontal scroll on mobile (a third
+  real screenshot showed the Restart button cut off, only a thin sliver
+  visible at the right edge). Rather than keep tuning the horizontal-
+  scroll min-width, converted the services table to a stacked layout on
+  mobile using the standard CSS-only responsive-table technique: each
+  service becomes its own full-width block (name, then status badge,
+  then a full-width Restart button) instead of cramped table columns. No
+  more horizontal scrolling needed for this list at all. Tap-to-sort by
+  Name/Status is preserved as a compact header row above the stacked list
+  rather than being removed.
+- Worth being upfront about: that screenshot also showed some odd text
+  (a "*" and "dead" appearing to merge into the service name) that I
+  could not conclusively explain from the parsing logic alone -- tested
+  the actual regex against realistic systemctl output and it parsed
+  correctly, so this looked like a rendering artifact of the cramped
+  table cells rather than a data bug, but I can't fully confirm that
+  without seeing it rendered directly. The stacked layout should
+  eliminate that whole category of cramped-rendering issue regardless;
+  flagging it in case it's still visible after this update.
+
 ## 1.10.2
 
 - Fixed detail-drawer tab content (Services/Ports/Actions) rendering as

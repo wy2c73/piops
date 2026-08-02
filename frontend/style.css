@@ -565,6 +565,27 @@ textarea { resize: vertical; font-family: var(--mono); }
   .modal-wide #tabActions:not([hidden]) {
     flex: none; overflow: visible; display: block;
   }
+
+  /* ---- Services table: stack instead of horizontally scrolling a
+     3-column table crammed into a phone width. Classic CSS-only
+     responsive-table technique: turn every table element block-level so
+     each row becomes its own full-width group instead of a row of cells. ---- */
+  .services-table { min-width: 0; }
+  .services-table, .services-table tbody, .services-table tr, .services-table td {
+    display: block; width: 100%;
+  }
+  /* Keep the sortable Name/Status header, just as a compact row instead
+     of table cells, so tap-to-sort still works on mobile. */
+  .services-table thead tr { display: flex; gap: 16px; }
+  .services-table th { display: inline-block; width: auto !important; }
+  .services-table th:last-child { display: none; } /* the empty 3rd header cell isn't needed once stacked */
+  .service-row {
+    padding: 10px 12px; border-bottom: 1px solid var(--border);
+  }
+  .service-row td { padding: 0; }
+  .service-row td:nth-child(2) { margin-top: 8px; }
+  .service-row td:nth-child(3) { margin-top: 8px; }
+  .service-row .service-restart-btn { width: 100%; }
   @supports (height: 100dvh) {
     .modal-wide, .modal-terminal { height: 92dvh; } /* accounts for mobile browsers' collapsing address bar */
   }
