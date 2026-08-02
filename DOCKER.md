@@ -117,7 +117,7 @@ The dashboard can check your GitHub repo's `main` branch and show a small
 "vX.Y.Z available" badge next to the version number in the top bar --
 purely informational, it never applies anything on its own. Set the
 `GITHUB_REPO` environment variable (in `docker-compose.yml`, or
-`PORT`/`HOST` alongside it) to `yourusername/pi-fleet-dashboard`. Leave it
+`PORT`/`HOST` alongside it) to `wy2c73/pi-fleet-dashboard`. Leave it
 unset and this feature just stays off -- no error, no behavior change.
 
 ### Fully automatic updates (opt-in, Docker only)
@@ -149,7 +149,7 @@ If you want it anyway, two pieces:
    ```yaml
    services:
      pi-fleet-dashboard:
-       image: ghcr.io/yourusername/pi-fleet-dashboard:latest
+       image: ghcr.io/wy2c73/pi-fleet-dashboard:latest
        # remove the "build: ." line if it's still there
        container_name: pi-fleet-dashboard
        restart: unless-stopped
@@ -160,7 +160,7 @@ If you want it anyway, two pieces:
        environment:
          - PORT=3000
          - HOST=0.0.0.0
-         - GITHUB_REPO=yourusername/pi-fleet-dashboard
+         - GITHUB_REPO=wy2c73/pi-fleet-dashboard
 
      watchtower:
        image: containrrr/watchtower

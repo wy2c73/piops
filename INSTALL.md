@@ -161,7 +161,7 @@ portable, passphrase-protected way to do it.
 
 To get a small "update available" badge in the dashboard's top bar when a
 newer version exists on your GitHub repo, set `GITHUB_REPO` before starting
-it, e.g. add `Environment=GITHUB_REPO=yourusername/pi-fleet-dashboard` to
+it, e.g. add `Environment=GITHUB_REPO=wy2c73/pi-fleet-dashboard` to
 the systemd service file above. This only checks and displays a
 notification &mdash; it never updates anything automatically. There's no
 equivalent automatic-update pipeline for native installs (unlike the

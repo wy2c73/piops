@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.13.1
+
+- Baked the real GitHub username (wy2c73) into every "yourusername"
+  placeholder across README.md, INSTALL.md, DOCKER.md,
+  docker-compose.yml, and install.sh -- the one-liner, GITHUB_REPO
+  examples, and GHCR image references are all real, working commands
+  now instead of needing manual substitution first. Also removed
+  install.sh's placeholder-detection check, since REPO_URL is now a
+  real default rather than a generic placeholder to guard against.
+  (linux/README.md's `/home/YOURUSERNAME` is intentionally left alone --
+  that's a local machine username for whoever sets up the SSH handler
+  script, unrelated to GitHub.)
+
 ## 1.13.0
 
 - **One-line installer** (`install.sh`): handles installing git/Node.js

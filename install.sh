@@ -2,11 +2,12 @@
 #
 # Pi Fleet Dashboard -- one-line installer
 #
-#   curl -sSL https://raw.githubusercontent.com/YOURUSERNAME/pi-fleet-dashboard/main/install.sh \
-#     | PI_FLEET_REPO_URL=https://github.com/YOURUSERNAME/pi-fleet-dashboard.git bash
+#   curl -sSL https://raw.githubusercontent.com/wy2c73/pi-fleet-dashboard/main/install.sh | bash
 #
-# (Replace YOURUSERNAME with your actual GitHub username/repo in both
-# places once you've pushed this project there yourself.)
+# Defaults to cloning from github.com/wy2c73/pi-fleet-dashboard (see
+# REPO_URL below). Override with PI_FLEET_REPO_URL if you've forked this
+# or want to run it against a different repo, e.g.:
+#   curl -sSL <script-url> | PI_FLEET_REPO_URL=https://github.com/you/pi-fleet-dashboard.git bash
 #
 # What this does, in order -- every step is logged as it runs, nothing
 # happens silently:
@@ -30,7 +31,7 @@
 set -euo pipefail
 
 # ---- Configuration (override via environment variables) ----
-REPO_URL="${PI_FLEET_REPO_URL:-https://github.com/yourusername/pi-fleet-dashboard.git}"
+REPO_URL="${PI_FLEET_REPO_URL:-https://github.com/wy2c73/pi-fleet-dashboard.git}"
 INSTALL_DIR="${PI_FLEET_INSTALL_DIR:-/opt/pi-fleet-dashboard}"
 SERVICE_USER="${PI_FLEET_SERVICE_USER:-pifleet}"
 PORT="${PI_FLEET_PORT:-3000}"
@@ -43,11 +44,6 @@ die()  { printf '\033[1;31mERROR:\033[0m %s\n' "$1" >&2; exit 1; }
 # ---- 1. Sanity checks ----
 if ! command -v apt-get >/dev/null 2>&1; then
   die "This installer targets Debian-family Linux (Raspberry Pi OS/Debian/Ubuntu) with apt-get. See INSTALL.md for a manual walkthrough on other systems."
-fi
-
-if [[ "$REPO_URL" == *"yourusername"* ]]; then
-  die "REPO_URL still has the placeholder in it. Set PI_FLEET_REPO_URL to your actual repo, e.g.:
-  curl -sSL <this-script-url> | PI_FLEET_REPO_URL=https://github.com/you/pi-fleet-dashboard.git bash"
 fi
 
 SUDO=""
