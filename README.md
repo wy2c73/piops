@@ -78,6 +78,7 @@ than just a viewer.
 - **Network scanning** — sweep your local subnet for hosts with SSH open and bulk-add whichever you select, using one shared username/credential for the batch
 - **Optional password gate** — Settings → Security lets you put a single shared password in front of the whole dashboard; off by default
 - **Mobile-friendly** — checking your fleet from a phone works: wrapping toolbars, scrollable tables instead of squished columns, and near-fullscreen modals on narrow screens
+- **One-line installer** — `install.sh` handles Node.js, cloning, the dedicated system user, and the systemd service in one command; safe to re-run later as an update
 - **In-browser SSH terminal** — click "Terminal" on any card for a real xterm.js session proxied over SSH
 - **"Open in local terminal"** — hands off to your system's default `ssh://` handler, or launch PuTTY / WinSCP directly (pick one in Settings; see "Windows integration" below)
 - **Settings** — Metric/Imperial and °C/°F display preference, view mode, local terminal app, saved per-browser
@@ -92,7 +93,27 @@ than just a viewer.
 
 ## Setup
 
-See [INSTALL.md](INSTALL.md) for detailed, step-by-step Linux install instructions including system and software requirements. Short version:
+**Fastest path** (fresh Raspberry Pi OS/Debian/Ubuntu machine, sets up
+Node.js if needed, clones this repo, creates a dedicated system user,
+and installs it as a systemd service in one go):
+
+```bash
+curl -sSL https://raw.githubusercontent.com/YOURUSERNAME/pi-fleet-dashboard/main/install.sh \
+  | PI_FLEET_REPO_URL=https://github.com/YOURUSERNAME/pi-fleet-dashboard.git bash
+```
+
+(Replace `YOURUSERNAME` with your actual GitHub username/repo in both
+places, once you've pushed this project there yourself.) Safe to re-run
+later -- it updates in place instead of starting over, so this is also
+how you'd pull in a new version. See the comments at the top of
+`install.sh` for exactly what it does and which environment variables
+let you customize the install directory, service user, or port. It's a
+plain, readable script under 200 lines -- reading it before running it
+is entirely reasonable instead of piping straight to bash.
+
+See [INSTALL.md](INSTALL.md) for detailed, step-by-step manual install
+instructions including system and software requirements, if you'd
+rather do it by hand or aren't on a Debian-family system. Short version:
 
 ```bash
 cd backend

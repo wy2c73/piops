@@ -1,5 +1,32 @@
 # Changelog
 
+## 1.13.0
+
+- **One-line installer** (`install.sh`): handles installing git/Node.js
+  20.x (via NodeSource, skipping if a recent-enough version is already
+  present), clones this repo into `/opt/pi-fleet-dashboard`, creates a
+  dedicated unprivileged system user, installs npm dependencies, and
+  sets up + starts a systemd service, printing the LAN URL(s) at the
+  end. Safe to re-run -- detects an existing install and updates it in
+  place instead of starting over, so it's also the update mechanism.
+  Passed a clean ShellCheck run with zero warnings.
+  Actually ran this end-to-end in testing (fresh install and the
+  update/re-run path both), which caught a real bug before it shipped:
+  the original design cloned as root then `chown -R`'d the result to the
+  service user afterward, but git refuses to operate on a repo owned by
+  a different user than the one running it -- meaning every future
+  "update" run (which did `sudo git pull` as root against a
+  service-user-owned repo) would have failed with a "dubious ownership"
+  error. Fixed by creating the service user first and cloning/pulling
+  as that user from the start, matching how npm install already
+  correctly ran. Confirmed the fix with a full fresh-install run followed
+  by an actual re-run, verifying ownership was correct throughout and
+  the update path completed without error. (The final systemd
+  activation step can't be verified in this sandbox specifically --
+  same "no real init system in a container" limitation hit throughout
+  this project's testing -- but everything up to that point, including
+  the exact bug this testing caught, is confirmed working.)
+
 ## 1.12.0
 
 - **Native terminal launching, properly explained and fixed.** A website

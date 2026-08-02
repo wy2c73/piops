@@ -5,6 +5,12 @@ dashboard (a dedicated Raspberry Pi, per the recommended setup) running a
 Debian-based OS such as Raspberry Pi OS. The same steps work on any other
 Debian/Ubuntu-based Linux with minor adjustments.
 
+**In a hurry?** `install.sh` in the repo root automates everything below
+(Node.js, cloning, the dedicated system user, and the systemd service) in
+one command -- see the "Fastest path" section in the main
+[README.md](README.md). The rest of this guide is for doing it by hand,
+or for systems `install.sh` doesn't target.
+
 ## System requirements
 
 **Dashboard host** (the machine running the dashboard itself):
