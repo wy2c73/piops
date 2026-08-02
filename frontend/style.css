@@ -493,7 +493,7 @@ textarea { resize: vertical; font-family: var(--mono); }
   color: var(--text-muted);
 }
 
-.services-table { width: 100%; min-width: 420px; border-collapse: collapse; font-size: 12.5px; table-layout: fixed; }
+.services-table { width: 100%; min-width: 480px; border-collapse: collapse; font-size: 12.5px; table-layout: fixed; }
 .services-table thead { position: sticky; top: 0; background: var(--surface); z-index: 1; }
 .services-table th {
   text-align: left; padding: 8px 12px; font-family: var(--mono); font-size: 10.5px;
@@ -502,9 +502,11 @@ textarea { resize: vertical; font-family: var(--mono); }
 }
 .services-table th:hover { color: var(--text); }
 .services-table th.sorted { color: var(--accent); }
-.services-table th:nth-child(1) { width: 55%; }
-.services-table th:nth-child(2) { width: 25%; }
-.services-table th:nth-child(3) { width: 20%; }
+.services-table th:nth-child(1) { width: 42%; }
+.services-table th:nth-child(2) { width: 18%; }
+.services-table th:nth-child(3) { width: 40%; }
+.service-actions { display: flex; gap: 6px; }
+.service-actions .btn { flex: 1; padding-left: 8px; padding-right: 8px; white-space: nowrap; }
 .sort-arrow { font-size: 9px; margin-left: 3px; }
 
 .service-row td { padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 12.5px; vertical-align: middle; }
@@ -585,7 +587,7 @@ textarea { resize: vertical; font-family: var(--mono); }
   .service-row td { padding: 0; }
   .service-row td:nth-child(2) { margin-top: 8px; }
   .service-row td:nth-child(3) { margin-top: 8px; }
-  .service-row .service-restart-btn { width: 100%; }
+  .service-row .service-actions .btn { padding: 8px 4px; font-size: 11.5px; }
   @supports (height: 100dvh) {
     .modal-wide, .modal-terminal { height: 92dvh; } /* accounts for mobile browsers' collapsing address bar */
   }

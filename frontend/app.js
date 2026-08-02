@@ -1442,7 +1442,13 @@ function applyServiceFilter() {
         <div class="service-desc">${escapeHtml(s.description || '')}</div>
       </td>
       <td><span class="service-state ${escapeHtml(s.active)}">${escapeHtml(s.sub)}</span></td>
-      <td><button class="btn btn-ghost btn-sm service-restart-btn" data-service="${escapeHtml(s.name)}" title="Restart this service">Restart</button></td>
+      <td>
+        <div class="service-actions">
+          <button class="btn btn-ghost btn-sm service-action-btn" data-service="${escapeHtml(s.name)}" data-action="start" title="Start this service">Start</button>
+          <button class="btn btn-ghost btn-sm service-action-btn" data-service="${escapeHtml(s.name)}" data-action="stop" title="Stop this service">Stop</button>
+          <button class="btn btn-ghost btn-sm service-action-btn" data-service="${escapeHtml(s.name)}" data-action="restart" title="Restart this service">Restart</button>
+        </div>
+      </td>
     </tr>`
         )
         .join('')
@@ -1473,25 +1479,34 @@ $('#servicesList').addEventListener('click', (e) => {
     applyServiceFilter();
     return;
   }
-  const restartBtn = e.target.closest('.service-restart-btn');
-  if (restartBtn && activeDeviceId) {
-    restartService(activeDeviceId, restartBtn.dataset.service);
+  const actionBtn = e.target.closest('.service-action-btn');
+  if (actionBtn && activeDeviceId) {
+    runServiceAction(activeDeviceId, actionBtn.dataset.service, actionBtn.dataset.action);
   }
 });
 
-async function restartService(deviceId, serviceName) {
+const SERVICE_ACTION_CONFIRM = {
+  start: (name, device) => `Start ${name} on "${device}"?`,
+  stop: (name, device) => `Stop ${name} on "${device}"? This may disrupt anything relying on it.`,
+  restart: (name, device) => `Restart ${name} on "${device}"?`,
+};
+const SERVICE_ACTION_VERB = { start: 'Starting', stop: 'Stopping', restart: 'Restarting' };
+const SERVICE_ACTION_PAST = { start: 'started', stop: 'stopped', restart: 'restarted' };
+
+async function runServiceAction(deviceId, serviceName, action) {
   const device = devices.find((d) => d.id === deviceId);
-  if (!confirm(`Restart ${serviceName} on "${device?.name || 'this device'}"?`)) return;
-  toast(`Restarting ${serviceName}\u2026`);
+  const confirmText = SERVICE_ACTION_CONFIRM[action](serviceName, device?.name || 'this device');
+  if (!confirm(confirmText)) return;
+  toast(`${SERVICE_ACTION_VERB[action]} ${serviceName}\u2026`);
   try {
     const res = await fetch(`${API}/${deviceId}/services/${encodeURIComponent(serviceName)}/action`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'restart' }),
+      body: JSON.stringify({ action }),
     });
     const body = await res.json();
-    if (body.ok) toast(`${serviceName} restarted`);
-    else toast(`Failed to restart ${serviceName}: ${(body.stderr || body.error || 'unknown error').split('\n')[0]}`, true);
+    if (body.ok) toast(`${serviceName} ${SERVICE_ACTION_PAST[action]}`);
+    else toast(`Failed to ${action} ${serviceName}: ${(body.stderr || body.error || 'unknown error').split('\n')[0]}`, true);
   } catch (err) {
     toast(err.message, true);
   }

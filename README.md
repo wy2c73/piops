@@ -71,7 +71,7 @@ than just a viewer.
 - **Groups** — manage a curated list of group names in Settings; the Add/Edit device form uses a dropdown fed from that list
 - **Alerts** — webhook notifications (Discord, Slack, ntfy.sh, or generic JSON) when a device goes offline/recovers, a Pi reports under-voltage or throttling, or CPU/memory/disk/temperature crosses a threshold you set
 - **Under-voltage / throttling indicator** — reads `vcgencmd get_throttled` on Raspberry Pi devices and flags active or historical power/thermal issues right on the card
-- **Fleet actions** — reboot, shut down, or restart a specific service, all with a confirmation dialog; define your own custom quick commands in Settings that show up as buttons on every device
+- **Fleet actions** — reboot, shut down, or start/stop/restart a specific service, all with a confirmation dialog; define your own custom quick commands in Settings that show up as buttons on every device
 - **Bulk actions** — select multiple devices to assign a group, export to CSV, or delete them all at once
 - **Docker support** — run it as a container instead of a native Node process; see [DOCKER.md](DOCKER.md), including specific steps for a Synology NAS
 - **Update notifications** — an optional badge in the top bar when a newer version exists on your GitHub repo (informational only; see "Updating" in DOCKER.md or INSTALL.md)
@@ -258,10 +258,11 @@ alerting (on/off, webhook, which event types are enabled) stays global.
 
 ## Setting up quick actions
 
-Reboot, Shutdown, service restarts, and custom commands all run over the
-same SSH connection as everything else, using `sudo -n` (non-interactive
-sudo -- it fails immediately with a clear error instead of hanging if a
-password would actually be required). For these to work, add a sudoers
+Reboot, Shutdown, starting/stopping/restarting a service, and custom
+commands all run over the same SSH connection as everything else, using
+`sudo -n` (non-interactive sudo -- it fails immediately with a clear
+error instead of hanging if a password would actually be required). For
+these to work, add a sudoers
 rule on each device you want to control, scoped to only what you need:
 
 ```bash

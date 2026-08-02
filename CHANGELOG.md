@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.11.0
+
+- Added Start and Stop buttons alongside Restart on every service row.
+  Backend already supported all three actions on the same endpoint (only
+  Restart was wired up in the UI) -- this was purely a frontend change.
+  Verified end-to-end against a real SSH server with scoped sudo: both
+  new actions correctly reach `sudo systemctl start/stop` with proper
+  authorization (confirmed by the response showing the actual systemctl
+  error, not a sudo permission error -- this sandbox just doesn't have
+  real systemd as PID 1 to fully execute against).
+  Each action has its own confirmation dialog and toast message (Stop's
+  confirmation specifically calls out that it may disrupt anything
+  relying on that service). Column widths and the mobile stacked layout
+  both rebalanced to fit three buttons instead of one.
+- Updated README wording (feature list + quick actions setup) to
+  reflect start/stop/restart -- the sudoers example already covered all
+  three, just the prose was restart-only.
+
 ## 1.10.4
 
 - Actually found and fixed the "*"/"dead" text bug flagged across the
