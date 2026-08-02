@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.10.1
+
+- Fixed the device detail drawer (and other modals) getting cut off at
+  the bottom on mobile Safari with no way to scroll and see the rest --
+  reported with a real screenshot on an iPhone, showing the Services tab
+  filter bar as the last visible thing. Root cause: `.modal-backdrop` used
+  `align-items: center` with no `overflow-y` set at all -- a well-known
+  CSS trap where a centered flex child taller than its container becomes
+  genuinely inaccessible (no scrollbar, no way to reach the overflow),
+  independent of any mobile viewport-unit quirk. Fixed with the standard
+  pattern: `overflow-y: auto` on the backdrop, and `margin: auto` on the
+  modal itself instead of `align-items: center` -- centers when it fits,
+  scrolls from the top when it doesn't. Also had to explicitly set
+  `align-items: flex-start` on the backdrop (removing `center` without a
+  replacement would have defaulted to `stretch`, which would have made
+  every modal always render at full height regardless of how much content
+  it actually had).
+
 ## 1.10.0
 
 - **Mobile layout pass.** Found and fixed several real issues by auditing

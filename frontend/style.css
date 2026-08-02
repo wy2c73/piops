@@ -306,12 +306,18 @@ button { font-family: inherit; }
 /* ---- Modals ---- */
 .modal-backdrop {
   position: fixed; inset: 0; background: rgba(6, 8, 13, 0.7);
-  display: flex; align-items: center; justify-content: center; z-index: 100;
+  display: flex; align-items: flex-start; justify-content: center; z-index: 100;
   padding: 20px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 .modal {
   background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
   width: 100%; max-width: 460px; max-height: 88vh; display: flex; flex-direction: column;
+  margin: auto 0; /* centers vertically when it fits; when it doesn't, this (not
+                     align-items:center) is what keeps the overflow scrollable
+                     instead of silently clipped with no way to reach it */
+  flex-shrink: 0;
 }
 .modal-wide { max-width: 680px; height: 78vh; }
 .modal-terminal { max-width: 900px; height: 88vh; }
