@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.10.4
+
+- Actually found and fixed the "*"/"dead" text bug flagged across the
+  last two screenshots -- it was a real parsing bug in `listServices()`,
+  not a rendering artifact as I'd guessed. Some systemd versions prefix
+  a per-unit status bullet (`●`/`○`/etc.) before the unit name for
+  certain states. The parsing regex captured that bullet as the service
+  "name," which shifted every field after it by one position -- the real
+  ACTIVE value landed where SUB should be (explaining why the status
+  badge showed "inactive" instead of "dead"), and the real DESCRIPTION
+  got a stray "dead"/"running" glued to its front (explaining the
+  "dead auditd.service" text). Confirmed by reproducing the exact
+  shifted output against the old regex, then verified the fix against
+  the bug case, normal bullet-free lines (to confirm no regression), and
+  a service name containing "@" (to confirm nothing gets falsely
+  stripped from legitimate unit names).
+
 ## 1.10.3
 
 - Fixed the Services tab requiring horizontal scroll on mobile (a third

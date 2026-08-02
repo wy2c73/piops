@@ -222,8 +222,15 @@ async function listServices(device) {
       .split('\n')
       .map((line) => line.trim())
       .filter(Boolean)
-      .map((line) => {
-        // format: unit.service loaded active running Description text...
+      .map((rawLine) => {
+        // Some systemd versions prefix a per-unit status bullet (e.g. "●"
+        // for active, "○"/similar for others) before the unit name. Left
+        // unstripped, it gets captured as "name" and shifts every field
+        // after it by one position -- e.g. the real ACTIVE value ends up
+        // rendered where SUB should be, and the real DESCRIPTION gets a
+        // stray "dead"/"running" glued to its front.
+        const line = rawLine.replace(/^[●○×!*]\s*/u, '');
+        // format: unit.service loaded active sub Description text...
         const match = line.match(/^(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(.*)$/);
         if (!match) return null;
         const [, name, load, active, sub, description] = match;
