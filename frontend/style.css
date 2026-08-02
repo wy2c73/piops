@@ -543,6 +543,28 @@ textarea { resize: vertical; font-family: var(--mono); }
   .modal-backdrop { padding: 8px; }
   .modal { max-width: 100%; }
   .modal-wide, .modal-terminal { height: 92vh; }
+
+  /* The "only the inner list scrolls, stats/tabs stay fixed" pattern above
+     assumes the stats+tabs header leaves enough room for the list. On a
+     phone the stat grid is forced to 2 columns (5 rows for ~10 boxes),
+     which can eat most of a 92vh modal on its own -- squeezing the
+     services/ports/actions content to near-zero height instead of just
+     scrolling internally. Simpler and robust regardless of header height:
+     let the whole modal body scroll as one unit on mobile instead. */
+  .modal-wide .modal-body {
+    display: block; overflow-y: auto; overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+  .modal-wide .tab-panel {
+    flex: none; min-height: 0; overflow: visible; display: block;
+  }
+  .modal-wide .services-list,
+  .modal-wide .ports-list {
+    flex: none; overflow: visible; max-height: none;
+  }
+  .modal-wide #tabActions:not([hidden]) {
+    flex: none; overflow: visible; display: block;
+  }
   @supports (height: 100dvh) {
     .modal-wide, .modal-terminal { height: 92dvh; } /* accounts for mobile browsers' collapsing address bar */
   }

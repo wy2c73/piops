@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.10.2
+
+- Fixed detail-drawer tab content (Services/Ports/Actions) rendering as
+  effectively empty on mobile -- reported via a second real screenshot
+  showing the Ports tab's description text cut off with no port chips
+  visible and the modal's own rounded corner right there, confirming it
+  wasn't a scroll issue this time. Different root cause than 1.10.1: the
+  drawer normally keeps stats/tabs fixed and scrolls only the inner list,
+  which depends on the fixed header leaving enough height for the list.
+  On a phone the stat grid is forced to 2 columns (5 rows for ~10 boxes)
+  and can eat nearly all of the modal's 92vh on its own, squeezing the
+  list's flex:1 share toward zero. Fixed by having the whole modal body
+  scroll as one unit on mobile instead of trying to keep a fixed header
+  with only the list scrolling -- avoids depending on the header ever
+  leaving "enough" room, regardless of how tall the stat grid gets.
+
 ## 1.10.1
 
 - Fixed the device detail drawer (and other modals) getting cut off at
