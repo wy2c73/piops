@@ -1,5 +1,38 @@
 # Changelog
 
+## 1.12.0
+
+- **Native terminal launching, properly explained and fixed.** A website
+  genuinely cannot launch a native app directly (deliberate browser
+  security boundary) -- the only mechanism the web platform provides is
+  a registered URL protocol handler, which has to be set up once per
+  machine. Previously that only existed for PuTTY; "System default" (the
+  actual `ssh://` link) had nothing to hand off to on a fresh Windows or
+  Linux install, which is why it looked like it was "trying to open via
+  http://" -- there was nothing registered at all.
+  - **Windows**: new `windows/ssh-protocol-handler.vbs` +
+    `register-ssh-protocol.reg` register `ssh://` to open Windows
+    Terminal (falling back to Command Prompt) running the `ssh` client
+    built into Windows 10/11 -- no PuTTY required unless you want it.
+  - **Linux**: new `linux/` folder with a handler script + `.desktop`
+    file + `xdg-mime` registration instructions, trying several common
+    terminal emulators. Verified end-to-end in this repo's own testing --
+    confirmed `xdg-mime` registration resolves correctly and the parsed
+    `ssh user@host -p port` command comes out exactly right, using a
+    logging stand-in in place of the real terminal launch (this sandbox
+    has no display server to prove out a real GUI window opening, so
+    that's as far as it verifies, but the actual resolution chain that
+    matters -- URI to registered handler to correctly parsed command --
+    is confirmed working).
+- Fixed a real, separate bug while investigating this: the in-browser
+  terminal could render as an empty black box (screenshot showed exactly
+  this) even with a working connection. `fitAddon.fit()` was called in
+  the same tick as unhiding the terminal modal, which can measure the
+  container before the browser has actually applied its new layout,
+  computing a 0-row/0-col terminal. Deferred it behind a double
+  `requestAnimationFrame`, the standard reliable way to wait for a real
+  layout+paint instead of guessing with a timeout.
+
 ## 1.11.1
 
 - Fixed the device detail drawer getting cut off on vertically-short

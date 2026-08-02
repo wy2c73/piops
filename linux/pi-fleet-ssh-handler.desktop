@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Pi Fleet Dashboard SSH Handler
+Comment=Opens ssh:// links from the dashboard in a terminal
+Exec=/home/YOURUSERNAME/.local/bin/ssh-protocol-handler.sh %u
+Type=Application
+Terminal=false
+NoDisplay=true
+MimeType=x-scheme-handler/ssh;

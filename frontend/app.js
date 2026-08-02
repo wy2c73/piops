@@ -1678,7 +1678,18 @@ function openTerminal(device) {
   fitAddon = new FitAddon.FitAddon();
   term.loadAddon(fitAddon);
   term.open(container);
-  fitAddon.fit();
+  // Defer fit() until the browser has actually laid out the modal we just
+  // unhid -- calling it in the same tick as `hidden = false` can measure
+  // the container before its real size is applied, computing a 0-row/
+  // 0-col terminal that then renders as an empty black box even though
+  // the connection itself is fine. Two rAFs is the standard, reliable way
+  // to wait for a real layout+paint rather than guessing with a timeout.
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      fitAddon.fit();
+      sendResize();
+    });
+  });
 
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
   termSocket = new WebSocket(`${proto}://${location.host}/ws/terminal?id=${device.id}`);

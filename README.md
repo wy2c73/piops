@@ -189,15 +189,42 @@ automatically if you paste a multi-line value into a cell). Existing devices
 (matched by host + port + username) are skipped, so it's safe to re-import
 the same file. Download a template from the same Settings section.
 
-## Windows integration (PuTTY / WinSCP)
+## Making "Open in local terminal" actually open a terminal
 
-By default, "Open in local terminal" generates an `ssh://` link, which opens
-whatever your OS has registered as the default SSH handler. Under
-Settings, you can switch that link to target PuTTY or WinSCP instead:
+"Open in local terminal" generates a link (`ssh://` by default, or
+`putty:`/`sftp://` if you pick PuTTY/WinSCP in Settings) and hands it to
+your OS. **On a fresh system, none of these do anything until you
+register a handler for them** -- that's normal, out-of-the-box behavior
+on both Windows and Linux, not something broken in the dashboard. A
+website genuinely cannot launch a native application directly for
+security reasons; a registered URL handler is the only mechanism the web
+platform provides for this, and it has to be set up once per machine.
+
+### Windows: System default -> Windows Terminal / Command Prompt
+
+This is the option most people want: clicking the link opens a real
+native terminal (Windows Terminal if installed, Command Prompt
+otherwise) running the `ssh` client built into Windows 10 (1809+) and
+Windows 11 -- nothing extra to install.
+
+1. Copy `windows/ssh-protocol-handler.vbs` from this repo somewhere
+   permanent, e.g. `C:\Tools\pi-fleet-dashboard\`.
+2. Open `windows/register-ssh-protocol.reg` in a text editor and replace
+   the placeholder path with wherever you put the `.vbs` file in step 1.
+3. Double-click the edited `.reg` file and confirm the prompt.
+
+That's it -- Settings can stay on "System default." If something else on
+your system already handles `ssh://` links, this silently replaces that
+registration.
+
+### Windows: PuTTY / WinSCP instead
+
+If you'd rather use one of these specifically:
 
 - **WinSCP** needs no extra setup — its installer registers `sftp://` /
   `scp://` links automatically (this is the default option when installing).
-- **PuTTY** doesn't understand URLs on its own, so it needs a one-time setup:
+- **PuTTY** doesn't understand URLs on its own, so it needs the same kind
+  of one-time setup as above:
   1. Copy `windows/putty-protocol-handler.vbs` from this repo somewhere
      permanent on the Windows machine, e.g. `C:\Tools\pi-fleet-dashboard\`.
   2. Open `windows/register-putty-protocol.reg` in a text editor and replace
@@ -206,8 +233,16 @@ Settings, you can switch that link to target PuTTY or WinSCP instead:
   4. In the dashboard, go to Settings &rarr; set "Open in local terminal" to
      PuTTY.
 
-Both files assume PuTTY is installed at `C:\Program Files\PuTTY\putty.exe` —
+Both PuTTY files assume it's installed at `C:\Program Files\PuTTY\putty.exe` —
 edit the path in `putty-protocol-handler.vbs` if yours is elsewhere.
+
+### Linux: System default -> your terminal emulator
+
+See [linux/README.md](linux/README.md) for the equivalent setup --
+registers `ssh://` links to open in whichever terminal emulator you have
+(tries several common ones automatically). Verified end-to-end in this
+repo's own CI-adjacent testing: the registration correctly resolves and
+launches the parsed `ssh user@host -p port` command.
 
 ## Versioning
 
