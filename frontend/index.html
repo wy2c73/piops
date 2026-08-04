@@ -215,13 +215,19 @@
             <button type="button" class="segmented-opt" data-value="off">Off</button>
           </div>
         </div>
-        <div class="form-row">
-          <label for="authCurrentPassword" id="authCurrentPasswordLabel" hidden>Current password</label>
-          <input id="authCurrentPassword" type="password" hidden />
+        <div class="form-row" id="authCurrentPasswordRow" hidden>
+          <label for="authCurrentPassword" id="authCurrentPasswordLabel">Current password</label>
+          <div class="password-field">
+            <input id="authCurrentPassword" type="password" />
+            <button type="button" class="password-toggle" data-target="authCurrentPassword" aria-label="Show password" tabindex="-1"></button>
+          </div>
         </div>
         <div class="form-row">
           <label for="authNewPassword" id="authNewPasswordLabel">New password</label>
-          <input id="authNewPassword" type="password" placeholder="At least 8 characters" />
+          <div class="password-field">
+            <input id="authNewPassword" type="password" placeholder="At least 8 characters" />
+            <button type="button" class="password-toggle" data-target="authNewPassword" aria-label="Show password" tabindex="-1"></button>
+          </div>
         </div>
         <div class="form-actions">
           <span class="test-result" id="authResult"></span>
@@ -251,7 +257,10 @@
         <div class="form-row">
           <label>Export backup</label>
           <p class="form-note">Bundles every device (including its saved credential) and these unit preferences into one file, encrypted with a passphrase you choose here. That passphrase is never stored &mdash; keep it somewhere safe, you'll need it to restore.</p>
-          <input id="exportPassphrase" type="password" placeholder="Passphrase (at least 8 characters)" />
+          <div class="password-field">
+            <input id="exportPassphrase" type="password" placeholder="Passphrase (at least 8 characters)" />
+            <button type="button" class="password-toggle" data-target="exportPassphrase" aria-label="Show password" tabindex="-1"></button>
+          </div>
         </div>
         <div class="form-actions">
           <span class="test-result" id="exportResult"></span>
@@ -264,7 +273,10 @@
           <label>Restore from backup</label>
           <p class="form-note">Adds any devices from the file that aren't already here (matched by host, port, and username) &mdash; existing devices are left untouched.</p>
           <input id="importFile" type="file" accept="application/json" />
-          <input id="importPassphrase" type="password" placeholder="Backup passphrase" style="margin-top: 8px;" />
+          <div class="password-field" style="margin-top: 8px;">
+            <input id="importPassphrase" type="password" placeholder="Backup passphrase" />
+            <button type="button" class="password-toggle" data-target="importPassphrase" aria-label="Show password" tabindex="-1"></button>
+          </div>
         </div>
         <div class="form-actions">
           <span class="test-result" id="importResult"></span>
@@ -332,7 +344,10 @@
         </div>
         <div class="form-row" id="scanPassphraseRow" hidden>
           <label for="scanPassphrase">Key passphrase (optional)</label>
-          <input id="scanPassphrase" type="password" />
+          <div class="password-field">
+            <input id="scanPassphrase" type="password" />
+            <button type="button" class="password-toggle" data-target="scanPassphrase" aria-label="Show password" tabindex="-1"></button>
+          </div>
         </div>
         <div class="form-actions">
           <span class="test-result" id="scanAddResult"></span>
@@ -387,7 +402,10 @@
       </div>
       <div class="form-row" id="passphraseRow" hidden>
         <label for="fPassphrase">Key passphrase (optional)</label>
-        <input id="fPassphrase" type="password" />
+        <div class="password-field">
+          <input id="fPassphrase" type="password" />
+          <button type="button" class="password-toggle" data-target="fPassphrase" aria-label="Show password" tabindex="-1"></button>
+        </div>
       </div>
       <p class="form-note">Credentials are encrypted at rest on this dashboard's own disk (AES-256-GCM). They're only ever used to open outbound SSH connections to your devices.</p>
 
@@ -504,6 +522,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xterm/5.3.0/lib/xterm.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xterm/5.3.0/addon-fit/xterm-addon-fit.min.js"></script>
+<script src="password-toggle.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

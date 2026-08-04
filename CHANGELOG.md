@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.16.3
+
+- Added a show/hide toggle (eye icon) to every password field in the
+  app, not just the Security tab one that prompted this -- all 7:
+  Security's current/new password, Backup's export/import passphrase,
+  Scan Network's key passphrase, the Add/Edit device key passphrase,
+  and the login page. Built as one small shared script
+  (`password-toggle.js`) rather than duplicating the logic 7 times, so
+  both index.html and the standalone login.html (which doesn't load
+  app.js) can use it. Icons are inline SVG, not an emoji -- this
+  project already learned that lesson once (the power-indicator emoji
+  couldn't be recolored via CSS and had to be replaced with SVG back in
+  1.5.6), so didn't want to reintroduce the same class of problem here.
+  Verified with an actual simulated click (via jsdom, not just reading
+  the code): confirms the input type toggles password/text correctly
+  on click, the icon and aria-label swap in sync, the value is
+  preserved across toggles, and a button with no matching input doesn't
+  crash.
+
 ## 1.16.2
 
 - Fixed a real install.sh failure reported from an actual Raspberry Pi:

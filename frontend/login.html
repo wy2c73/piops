@@ -28,7 +28,10 @@
     <form id="loginForm">
       <div class="form-row">
         <label for="loginPassword">Password</label>
-        <input id="loginPassword" type="password" autofocus required />
+        <div class="password-field">
+          <input id="loginPassword" type="password" autofocus required />
+          <button type="button" class="password-toggle" data-target="loginPassword" aria-label="Show password" tabindex="-1"></button>
+        </div>
       </div>
       <p class="test-result fail" id="loginError" hidden></p>
       <button type="submit" class="btn btn-primary login-submit">Sign in</button>
@@ -57,5 +60,6 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
   }
 });
 </script>
+<script src="password-toggle.js"></script>
 </body>
 </html>

@@ -191,6 +191,16 @@ button { font-family: inherit; }
   font-size: 13px;
   font-family: var(--sans);
 }
+.password-field { position: relative; display: flex; }
+.password-field input { flex: 1; padding-right: 38px; }
+.password-toggle {
+  position: absolute; right: 3px; top: 50%; transform: translateY(-50%);
+  background: none; border: none; color: var(--text-muted); cursor: pointer;
+  padding: 6px; display: flex; align-items: center; justify-content: center;
+  border-radius: var(--radius); line-height: 0;
+}
+.password-toggle:hover { color: var(--text); }
+.password-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .search-input { flex: 1; }
 .search-input:focus, .group-filter:focus, input:focus, textarea:focus {
   outline: none; border-color: var(--accent);

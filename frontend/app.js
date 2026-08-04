@@ -232,8 +232,7 @@ function applyAuthUI() {
     b.classList.toggle('active', (b.dataset.value === 'on') === authStatus.enabled);
   });
   $('#logoutBtn').hidden = !authStatus.enabled;
-  $('#authCurrentPasswordLabel').hidden = !authStatus.enabled;
-  $('#authCurrentPassword').hidden = !authStatus.enabled;
+  $('#authCurrentPasswordRow').hidden = !authStatus.enabled;
   $('#authNewPasswordLabel').textContent = authStatus.enabled ? 'New password (leave blank to keep current)' : 'Password';
 }
 

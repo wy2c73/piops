@@ -1,6 +1,6 @@
 {
   "name": "piops-backend",
-  "version": "1.16.2",
+  "version": "1.16.3",
   "description": "PiOps \u2014 agentless SSH-based monitoring dashboard for a Raspberry Pi fleet",
   "main": "server.js",
   "type": "commonjs",
