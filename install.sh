@@ -58,11 +58,20 @@ fi
 # Runs a command as $SERVICE_USER regardless of whether we're already
 # root (uses su) or need to elevate via sudo -- so it works either way
 # without assuming sudo is installed when we're already root.
+#
+# Explicitly passes HOME rather than trusting `su`/`sudo` to set it
+# correctly on their own -- they turned out to disagree: a non-login
+# `su user -c cmd` doesn't reset HOME at all (inherits the caller's),
+# while `sudo -u user cmd` does. Being explicit here means this doesn't
+# depend on which of the two paths runs, or on any distro's specific
+# defaults for either.
 run_as_service_user() {
+  local home
+  home="$(getent passwd "$SERVICE_USER" | cut -d: -f6)"
   if [[ $EUID -eq 0 ]]; then
-    su -s /bin/bash "$SERVICE_USER" -c "$1"
+    su -s /bin/bash "$SERVICE_USER" -c "HOME='$home' $1"
   else
-    sudo -u "$SERVICE_USER" bash -c "$1"
+    sudo -u "$SERVICE_USER" HOME="$home" bash -c "$1"
   fi
 }
 
@@ -96,6 +105,24 @@ if ! id "$SERVICE_USER" >/dev/null 2>&1; then
   $SUDO useradd -r -s /usr/sbin/nologin "$SERVICE_USER"
 else
   log "System user '$SERVICE_USER' already exists, skipping"
+fi
+
+# useradd -r does not create a home directory by default on Debian/
+# Raspberry Pi OS, but the user still gets one *assigned* in /etc/passwd
+# (typically /home/$SERVICE_USER) -- so anything that needs to write
+# there (npm's cache being the notable one) fails with a permission
+# error on a directory that was never actually created. Fix this
+# regardless of whether the user above was just created or already
+# existed, since an existing user could already be in this broken state.
+SERVICE_HOME="$(getent passwd "$SERVICE_USER" | cut -d: -f6)"
+if [[ -z "$SERVICE_HOME" || "$SERVICE_HOME" == "/" ]]; then
+  SERVICE_HOME="/home/$SERVICE_USER"
+  $SUDO usermod -d "$SERVICE_HOME" "$SERVICE_USER"
+fi
+if [[ ! -d "$SERVICE_HOME" ]]; then
+  log "Creating home directory $SERVICE_HOME for '$SERVICE_USER'"
+  $SUDO mkdir -p "$SERVICE_HOME"
+  $SUDO chown "$SERVICE_USER:$SERVICE_USER" "$SERVICE_HOME"
 fi
 
 # ---- 4. Get the project (cloned/updated AS the service user from the

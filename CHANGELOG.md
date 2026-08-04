@@ -1,5 +1,38 @@
 # Changelog
 
+## 1.16.2
+
+- Fixed a real install.sh failure reported from an actual Raspberry Pi:
+  `npm install` failed with `EACCES: permission denied, mkdir
+  '/home/piops'`. Root cause: `useradd -r` assigns a home directory in
+  `/etc/passwd` (`/home/piops`) but does not actually create it on
+  Debian/Raspberry Pi OS -- so anything needing to write there (npm's
+  cache, notably) fails on a directory that was never created. Fixed by
+  explicitly creating and owning that directory, and repairing it even
+  for an already-existing user (since a user could already be stuck in
+  this exact broken state -- which is precisely what a fresh re-run
+  needs to detect and fix, not just skip because the user already
+  exists).
+- Also made `run_as_service_user()` explicitly set `HOME` for the
+  command it runs, instead of trusting `su`/`sudo` to set it correctly
+  on their own -- they turned out to disagree. A non-login `su user -c
+  cmd` doesn't reset HOME at all (inherits the caller's); `sudo -u user
+  cmd` does. This is what actually explains why this bug shipped
+  undetected: **all of my prior testing of this script ran as root**,
+  which exercises the `su` branch -- but a real user follows the
+  documented setup (a regular account with sudo), which exercises the
+  `sudo` branch instead, and only that branch actually hit the missing
+  home directory. Testing exclusively as root was a real gap in how
+  this got tested, not just an unlucky miss.
+  Re-tested properly this time: fresh install as root (the `su`
+  branch), fresh install as a genuine non-root sudo-capable user (the
+  `sudo` branch -- the one that actually matters), and, critically, a
+  re-run against a user already stuck in the exact broken state a real
+  install could be in right now (existing user, missing home directory)
+  to confirm the fix repairs it rather than only handling brand-new
+  installs. All three passed, including a real `npm install` completing
+  successfully in each case.
+
 ## 1.16.1
 
 - Added UNINSTALL.md, covering both install methods:
