@@ -28,13 +28,18 @@ const el = (tag, cls, text) => {
 };
 
 // ---------------------------------------------------------------- settings
-const SETTINGS_KEY = 'piFleetDashboardSettings';
-const ORDER_KEY = 'piFleetDashboardOrder';
-const defaultSettings = { unitSystem: 'metric', tempUnit: 'C', localApp: 'system', viewMode: 'grid' };
+const SETTINGS_KEY = 'piOpsSettings';
+const ORDER_KEY = 'piOpsOrder';
+// Renamed from the pre-PiOps keys -- read these once as a fallback so an
+// existing install's saved settings/card order carry over instead of
+// silently resetting after the rename.
+const LEGACY_SETTINGS_KEY = 'piFleetDashboardSettings';
+const LEGACY_ORDER_KEY = 'piFleetDashboardOrder';
+const defaultSettings = { theme: 'dark', unitSystem: 'metric', tempUnit: 'C', localApp: 'system', viewMode: 'grid' };
 
 function loadSettings() {
   try {
-    const raw = localStorage.getItem(SETTINGS_KEY);
+    const raw = localStorage.getItem(SETTINGS_KEY) ?? localStorage.getItem(LEGACY_SETTINGS_KEY);
     return raw ? { ...defaultSettings, ...JSON.parse(raw) } : { ...defaultSettings };
   } catch {
     return { ...defaultSettings };
@@ -53,7 +58,12 @@ let settings = loadSettings();
 let orderIds = loadOrder();
 
 function loadOrder() {
-  try { return JSON.parse(localStorage.getItem(ORDER_KEY)) || []; } catch { return []; }
+  try {
+    const raw = localStorage.getItem(ORDER_KEY) ?? localStorage.getItem(LEGACY_ORDER_KEY);
+    return JSON.parse(raw) || [];
+  } catch {
+    return [];
+  }
 }
 
 function saveOrder() {
@@ -153,10 +163,29 @@ function describeThrottledShort(t) {
 }
 
 function applySettingsUI() {
+  document.querySelectorAll('#themeSegmented .segmented-opt').forEach((b) => b.classList.toggle('active', b.dataset.value === settings.theme));
   document.querySelectorAll('#unitSystemSegmented .segmented-opt').forEach((b) => b.classList.toggle('active', b.dataset.value === settings.unitSystem));
   document.querySelectorAll('#tempUnitSegmented .segmented-opt').forEach((b) => b.classList.toggle('active', b.dataset.value === settings.tempUnit));
   document.querySelectorAll('#localAppSegmented .segmented-opt').forEach((b) => b.classList.toggle('active', b.dataset.value === settings.localApp));
   document.querySelectorAll('#viewModeSegmented .segmented-opt').forEach((b) => b.classList.toggle('active', b.dataset.value === settings.viewMode));
+}
+
+// Applies the current theme to the page. Called at boot (before most of
+// the UI loads) and whenever the Theme setting changes -- deliberately
+// kept separate from applySettingsUI(), which only runs when the
+// Settings modal is opened, since the theme needs to take effect
+// immediately on page load, not just once someone opens Settings.
+function applyTheme() {
+  document.documentElement.dataset.theme = settings.theme;
+  if (term) {
+    term.options.theme = terminalColorsForTheme(settings.theme);
+  }
+}
+
+function terminalColorsForTheme(theme) {
+  return theme === 'light'
+    ? { background: '#ffffff', foreground: '#1a1d24', cursor: '#1568a8' }
+    : { background: '#0b0e14', foreground: '#e4e7ed', cursor: '#5eb1ef' };
 }
 
 function refreshVisibleUnits() {
@@ -164,11 +193,23 @@ function refreshVisibleUnits() {
   if (activeDeviceId) renderDetailStats(activeDeviceId);
 }
 
+function switchSettingsTab(name) {
+  document.querySelectorAll('.settings-tab-btn').forEach((b) => b.classList.toggle('active', b.dataset.settingsTab === name));
+  $('#settingsPanelGeneral').hidden = name !== 'general';
+  $('#settingsPanelDevices').hidden = name !== 'devices';
+  $('#settingsPanelAlerts').hidden = name !== 'alerts';
+  $('#settingsPanelSecurity').hidden = name !== 'security';
+  $('#settingsPanelCommands').hidden = name !== 'commands';
+  $('#settingsPanelBackup').hidden = name !== 'backup';
+}
+document.querySelectorAll('.settings-tab-btn').forEach((b) => b.addEventListener('click', () => switchSettingsTab(b.dataset.settingsTab)));
+
 $('#settingsBtn').addEventListener('click', () => {
   applySettingsUI();
   applyAlertConfigUI();
   renderCommandList();
   applyAuthUI();
+  switchSettingsTab('general');
   $('#settingsModalBackdrop').hidden = false;
 });
 $('#settingsModalClose').addEventListener('click', () => ($('#settingsModalBackdrop').hidden = true));
@@ -252,6 +293,15 @@ $('#settingsModalBackdrop').addEventListener('click', (e) => {
   if (e.target === $('#settingsModalBackdrop')) $('#settingsModalBackdrop').hidden = true;
 });
 
+$('#themeSegmented').addEventListener('click', (e) => {
+  const btn = e.target.closest('.segmented-opt');
+  if (!btn) return;
+  settings.theme = btn.dataset.value;
+  saveSettings();
+  applySettingsUI();
+  applyTheme();
+});
+
 $('#unitSystemSegmented').addEventListener('click', (e) => {
   const btn = e.target.closest('.segmented-opt');
   if (!btn) return;
@@ -324,7 +374,7 @@ $('#exportBtn').addEventListener('click', async () => {
     const body = await res.json();
     if (!res.ok) throw new Error(body.error || 'Export failed');
 
-    const filename = `pi-fleet-dashboard-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    const filename = `piops-backup-${new Date().toISOString().slice(0, 10)}.json`;
     const blobUrl = URL.createObjectURL(new Blob([JSON.stringify(body, null, 2)], { type: 'application/json' }));
     const a = document.createElement('a');
     a.href = blobUrl;
@@ -513,7 +563,7 @@ $('#csvTemplateBtn').addEventListener('click', () => {
   const blobUrl = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
   const a = document.createElement('a');
   a.href = blobUrl;
-  a.download = 'pi-fleet-dashboard-devices-template.csv';
+  a.download = 'piops-devices-template.csv';
   document.body.appendChild(a);
   a.click();
   a.remove();
@@ -868,7 +918,7 @@ $('#bulkExportBtn').addEventListener('click', () => {
     rows.push([d.name, d.host, d.port, d.username, d.group || 'Unsorted', d.authType, '', '']);
   }
   const csv = rows.map((r) => r.map(csvEscape).join(',')).join('\n');
-  downloadFile(csv, `pi-fleet-dashboard-export-${new Date().toISOString().slice(0, 10)}.csv`, 'text/csv');
+  downloadFile(csv, `piops-export-${new Date().toISOString().slice(0, 10)}.csv`, 'text/csv');
   toast(`Exported ${rows.length - 1} device(s) \u2014 credentials aren't included; re-add them before importing elsewhere`);
 });
 
@@ -1666,11 +1716,7 @@ function openTerminal(device) {
   container.innerHTML = '';
 
   term = new Terminal({
-    theme: {
-      background: '#0b0e14',
-      foreground: '#e4e7ed',
-      cursor: '#5eb1ef',
-    },
+    theme: terminalColorsForTheme(settings.theme),
     fontFamily: 'ui-monospace, "JetBrains Mono", Menlo, Consolas, monospace',
     fontSize: 13,
     cursorBlink: true,
@@ -1763,6 +1809,7 @@ async function checkForUpdate() {
   }
 }
 
+applyTheme();
 loadVersion();
 checkForUpdate();
 loadAuthStatus();

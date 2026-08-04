@@ -11,7 +11,7 @@
 '
 ' Setup:
 '   1. Save this file somewhere permanent, e.g.
-'      C:\Tools\pi-fleet-dashboard\ssh-protocol-handler.vbs
+'      C:\Tools\piops\ssh-protocol-handler.vbs
 '   2. Open register-ssh-protocol.reg in a text editor and replace the
 '      placeholder path with wherever you put this file in step 1.
 '   3. Double-click the edited .reg file and confirm the prompt.

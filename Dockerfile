@@ -1,4 +1,4 @@
-# Pi Fleet Dashboard -- Docker image
+# PiOps -- Docker image
 #
 # Build context is the repository root (this file lives there), since the
 # backend expects the frontend as a sibling directory (backend/server.js

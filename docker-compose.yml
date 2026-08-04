@@ -1,8 +1,8 @@
 services:
-  pi-fleet-dashboard:
+  piops:
     build: .
-    image: pi-fleet-dashboard:local
-    container_name: pi-fleet-dashboard
+    image: piops:local
+    container_name: piops
     restart: unless-stopped
     ports:
       # Host port : container port. Change the first number if 3000 is
@@ -12,12 +12,12 @@ services:
       # Persists the device registry, encryption key, groups, alert
       # config, and custom commands across container restarts/rebuilds.
       # On Synology this typically lands under
-      # /volume1/docker/pi-fleet-dashboard/data once you place this
+      # /volume1/docker/piops/data once you place this
       # project folder there -- see DOCKER.md.
       - ./data:/app/backend/data
     environment:
       - PORT=3000
       - HOST=0.0.0.0
-      # - GITHUB_REPO=wy2c73/pi-fleet-dashboard  # enables the "update available" badge
+      # - GITHUB_REPO=wy2c73/piops  # enables the "update available" badge
       # - POLL_INTERVAL_MS=15000
       # - POLL_CONCURRENCY=5

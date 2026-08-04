@@ -19,7 +19,7 @@ router.post('/test', async (req, res) => {
       return res.status(400).json({ error: 'Set a webhook URL first' });
     }
     await sendWebhook(config, {
-      title: 'Pi Fleet Dashboard test alert',
+      title: 'PiOps test alert',
       message: 'If you can see this, your webhook is configured correctly.',
     });
     res.json({ ok: true });

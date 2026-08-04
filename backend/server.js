@@ -115,7 +115,7 @@ server.on('upgrade', (req, socket, head) => {
 poller.start();
 
 server.listen(PORT, HOST, () => {
-  console.log(`Pi Fleet Dashboard listening on ${HOST}:${PORT}`);
+  console.log(`PiOps listening on ${HOST}:${PORT}`);
   console.log(`  -> http://localhost:${PORT}`);
   for (const addr of listLanAddresses()) {
     console.log(`  -> http://${addr}:${PORT}`);

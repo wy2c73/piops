@@ -1,5 +1,136 @@
 # Changelog
 
+## 1.16.1
+
+- Added UNINSTALL.md, covering both install methods:
+  - Native (systemd): stopping/disabling/removing the service, deleting
+    the install directory, removing the dedicated system user -- plus
+    optional cleanup (Node.js, the firewall rule) for anything installed
+    specifically for PiOps.
+  - Docker: `docker compose down`, removing the image, deleting the
+    project folder (including the data volume), and removing Watchtower
+    if it was set up solely for this container.
+  - A third section for things PiOps configured outside the dashboard
+    host itself: the sudoers entry on each monitored Pi, browser
+    localStorage keys, and the Windows/Linux terminal protocol handler
+    registrations.
+  Every path, username, and filename in it was cross-checked directly
+  against what install.sh and docker-compose.yml actually create
+  (`/opt/piops`, the `piops` system user, `piops.service`,
+  `/etc/sudoers.d/piops`) rather than approximated from memory. Linked
+  from README.md, INSTALL.md, and DOCKER.md so it's actually
+  discoverable.
+
+## 1.16.0
+
+- Added a light/dark theme toggle (Settings -> General), defaulting to
+  dark. This turned out to be more than a simple variable swap:
+  - Two hardcoded colors (`#06121c`, used as button/active-segment text
+    on top of the accent color) and several hardcoded rgba() tints (the
+    topbar's translucent background, the body's ambient background
+    glow) would not have adapted to a light theme at all if left as
+    literals -- promoted all of them to theme-aware CSS variables
+    (`--on-accent`, `--topbar-bg`, `--ambient-1/2`).
+  - The in-browser terminal's colors are set via xterm.js JS options,
+    not CSS, so they don't come along for free with a CSS variable
+    switch -- added a separate light/dark terminal palette that updates
+    live if the theme is changed while a terminal is open.
+  - Applied the theme via a tiny inline script in the `<head>` of both
+    index.html and login.html (not just in app.js, which loads at the
+    end of body) specifically so light-theme users don't see a flash of
+    dark theme on every page load while the rest of the JS is still
+    loading.
+  - Computed actual WCAG contrast ratios for every new light-theme color
+    pair rather than eyeballing them -- caught real problems this way:
+    the initial accent blue and status green both cleared the lenient
+    "large text/UI component" 3:1 threshold but failed the 4.5:1 normal-
+    text threshold, and the initial `--text-dim` failed contrast
+    outright. Darkened all three until they cleared 4.5:1 with real
+    margin, then re-verified. (Left the pre-existing dark theme's
+    `--text-dim` alone despite it having the same underlying contrast
+    gap -- that's an already-shipped, already-reviewed design choice,
+    out of scope for what was asked here.)
+
+## 1.15.0
+
+- Reorganized Settings into tabs (General, Devices, Alerts, Security,
+  Commands, Backup) instead of one long flat scroll through 8 stacked
+  sections -- was already getting unwieldy and would only get worse as
+  more settings (theme, stats history) land. Reuses the exact tab
+  pattern from the device detail drawer for visual consistency, but
+  with an independently-scoped click handler (`.settings-tab-btn`,
+  not `.tab-btn`) rather than sharing the drawer's tab-switching
+  function directly -- that function hardcodes the drawer's own panel
+  IDs, so reusing it verbatim would have made clicking a Settings tab
+  also try to toggle the (unrelated, and in this modal nonexistent)
+  device-detail panels.
+  Widened the modal to match the drawer's width for better breathing
+  room, which also means it automatically inherits the single-scroll-
+  region-plus-sticky-tab-bar behavior already hardened across mobile,
+  desktop, and vertically-short screens in 1.10.x/1.11.1 -- no new
+  scroll-handling code needed for this to work correctly everywhere.
+  No behavior changes to any individual setting -- every input, button,
+  and save action works exactly as before, just regrouped into tabs.
+  Verified every one of the ~45 element IDs referenced by existing JS
+  still exists exactly once after the restructuring, and that the two
+  tab-button classes don't collide.
+
+## 1.14.0
+
+- **Renamed the project from Pi Fleet Dashboard to PiOps.** Went through
+  every file rather than just the visible UI text:
+  - npm package name (`piops-backend`), UI brand text/page titles
+    (`PI OPS` / `PiOps`), systemd service (`piops.service`), dedicated
+    system user (`piops`, was `pifleet`), install directory (`/opt/piops`,
+    was `/opt/pi-fleet-dashboard`), Docker image/container name, the GHCR
+    workflow (also switched from a hardcoded repo name to
+    `ghcr.io/${{ github.repository }}`, so it can't go stale on a future
+    rename), install.sh's env var prefix (`PIOPS_*`, was `PI_FLEET_*`),
+    and every README/INSTALL.md/DOCKER.md/linux+windows integration doc.
+  - Download filename conventions (backup export, CSV template/export)
+    updated to the new name -- no compatibility concern there, they're
+    just filenames.
+  - Two places got deliberate backward-compatible handling instead of a
+    clean rename, since they affect continuity for whoever already has
+    data: the backup-file format identifier (writes `piops-backup` now,
+    but still accepts the legacy `pi-fleet-dashboard-backup` string on
+    import) and the browser localStorage keys for settings/card order
+    (new keys, with a one-time fallback read from the old ones so
+    existing saved preferences carry over instead of resetting).
+  - Old CHANGELOG entries were left untouched -- they're a historical
+    record of what was true at the time, not living documentation.
+  - Added a LICENSE file (MIT) in 1.13.2, immediately before this --
+    worth knowing this rename shipped right after going public-ready.
+- Tested thoroughly rather than assuming a rename this size went
+  cleanly: full fresh-install and update-path runs of the renamed
+  install.sh against a real git remote (confirmed system user, install
+  directory, ownership, and the systemd unit file all correct); the
+  localStorage migration logic against all three real scenarios (fresh
+  install, existing user with only the old key, and a user who already
+  has both); and a full backup export/import round-trip confirming both
+  the new format string and the legacy one are each accepted correctly.
+
+## 1.13.2
+
+- Added a LICENSE file (MIT) and a License section in the README.
+  Without one, a public repo is legally "all rights reserved" by
+  default -- visitors can view the code but have no actual right to
+  use/copy/modify it, which matters now that this is going public.
+- Verified (before recommending going public) that no gitignored
+  secret file -- devices.json, .key, auth.json, groups.json,
+  alerts.json, customCommands.json, .session-secret -- was ever
+  committed at any point across the full history, and searched every
+  commit's full diff for private-key headers or credential-shaped
+  strings. Both checks came back clean.
+- Backfilled annotated git tags for the entire version history
+  (v1.1.0 through v1.13.1, 33 tags total) by matching each commit's
+  exact message text rather than hash, since hashes differ between
+  separately-made local commits even with identical content. Verified
+  every single tag resolves to a commit whose message matches that
+  version. (This was done as a one-time local script, not shipped as
+  part of the project -- see chat for the exact tool and instructions
+  to run the same backfill against your own local clone.)
+
 ## 1.13.1
 
 - Baked the real GitHub username (wy2c73) into every "yourusername"

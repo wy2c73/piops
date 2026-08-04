@@ -60,5 +60,5 @@ done
 
 # Nothing found -- surface an error instead of failing silently.
 msg="No terminal emulator found to run: ${ssh_cmd[*]}"
-zenity --error --text="$msg" 2>/dev/null || notify-send "Pi Fleet Dashboard" "$msg" 2>/dev/null || echo "$msg" >&2
+zenity --error --text="$msg" 2>/dev/null || notify-send "PiOps" "$msg" 2>/dev/null || echo "$msg" >&2
 exit 1

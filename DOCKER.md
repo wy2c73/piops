@@ -1,4 +1,4 @@
-# Running Pi Fleet Dashboard in Docker
+# Running PiOps in Docker
 
 An alternative to the systemd-based install in [INSTALL.md](INSTALL.md) --
 same app, packaged as a container. Useful if you'd rather manage it
@@ -24,8 +24,8 @@ Unraid, plain `docker compose`, etc.) instead of as a native Node process.
 ## Quick start (any Docker host)
 
 ```bash
-git clone <your-repository-url> pi-fleet-dashboard
-cd pi-fleet-dashboard
+git clone <your-repository-url> piops
+cd piops
 docker compose up -d --build
 ```
 
@@ -44,10 +44,10 @@ container.
    enough to copy the project onto the NAS -- or use File Station instead
    if you'd rather not enable SSH at all.
 2. Copy this whole project folder onto the NAS, e.g. to
-   `/volume1/docker/pi-fleet-dashboard/` (create a shared folder named
+   `/volume1/docker/piops/` (create a shared folder named
    `docker` first in DSM if you don't already have one).
 3. Open **Container Manager** &rarr; **Project** &rarr; **Create**.
-4. Set the project name (e.g. `pi-fleet-dashboard`) and point "Path" at
+4. Set the project name (e.g. `piops`) and point "Path" at
    the folder from step 2. Container Manager will detect
    `docker-compose.yml` automatically.
 5. Click **Next** through the build step, then **Done**. Container
@@ -60,8 +60,8 @@ If you're already comfortable in a terminal, this is faster:
 
 ```bash
 # On the NAS, with SSH enabled (Control Panel -> Terminal & SNMP):
-sudo mkdir -p /volume1/docker/pi-fleet-dashboard
-cd /volume1/docker/pi-fleet-dashboard
+sudo mkdir -p /volume1/docker/piops
+cd /volume1/docker/piops
 # copy or git clone the project here, then:
 sudo docker compose up -d --build
 ```
@@ -74,7 +74,7 @@ sudo docker compose up -d --build
   `docker compose up -d --build`.
 - **Volume path**: the compose file uses `./data`, which resolves relative
   to wherever you placed the project folder -- e.g.
-  `/volume1/docker/pi-fleet-dashboard/data`. That folder is created
+  `/volume1/docker/piops/data`. That folder is created
   automatically on first run and is where `devices.json`, `.key`,
   `groups.json`, `alerts.json`, and `customCommands.json` all live. Back
   this folder up the same way you'd protect an SSH key, and preferably
@@ -103,7 +103,7 @@ undecryptable (see the Troubleshooting section in the main README).
 ### Manual (always available, no setup required)
 
 ```bash
-cd pi-fleet-dashboard
+cd piops
 git pull   # or copy in the new files
 docker compose up -d --build
 ```
@@ -117,7 +117,7 @@ The dashboard can check your GitHub repo's `main` branch and show a small
 "vX.Y.Z available" badge next to the version number in the top bar --
 purely informational, it never applies anything on its own. Set the
 `GITHUB_REPO` environment variable (in `docker-compose.yml`, or
-`PORT`/`HOST` alongside it) to `wy2c73/pi-fleet-dashboard`. Leave it
+`PORT`/`HOST` alongside it) to `wy2c73/piops`. Leave it
 unset and this feature just stays off -- no error, no behavior change.
 
 ### Fully automatic updates (opt-in, Docker only)
@@ -148,10 +148,10 @@ If you want it anyway, two pieces:
 
    ```yaml
    services:
-     pi-fleet-dashboard:
-       image: ghcr.io/wy2c73/pi-fleet-dashboard:latest
+     piops:
+       image: ghcr.io/wy2c73/piops:latest
        # remove the "build: ." line if it's still there
-       container_name: pi-fleet-dashboard
+       container_name: piops
        restart: unless-stopped
        ports:
          - "3000:3000"
@@ -160,7 +160,7 @@ If you want it anyway, two pieces:
        environment:
          - PORT=3000
          - HOST=0.0.0.0
-         - GITHUB_REPO=wy2c73/pi-fleet-dashboard
+         - GITHUB_REPO=wy2c73/piops
 
      watchtower:
        image: containrrr/watchtower
@@ -168,8 +168,8 @@ If you want it anyway, two pieces:
        restart: unless-stopped
        volumes:
          - /var/run/docker.sock:/var/run/docker.sock
-       command: --interval 3600 pi-fleet-dashboard
-       # checks hourly and only touches the pi-fleet-dashboard container,
+       command: --interval 3600 piops
+       # checks hourly and only touches the piops container,
        # not anything else you're running
    ```
 
@@ -199,6 +199,11 @@ These require passwordless `sudo` configured **on each monitored Pi**, not
 on the Docker host or inside the container itself -- the container is just
 where the SSH client runs from. See "Setting up quick actions" in the main
 README for the exact sudoers rule.
+
+## Uninstalling
+
+See [UNINSTALL.md](UNINSTALL.md) for the full removal steps (container,
+image, and the project folder holding your data).
 
 ## Troubleshooting
 

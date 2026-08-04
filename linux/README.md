@@ -18,12 +18,12 @@ chmod +x ~/.local/bin/ssh-protocol-handler.sh
 # 2. Install the .desktop file, editing the Exec path to your actual
 #    username/home directory first
 mkdir -p ~/.local/share/applications
-sed "s#/home/YOURUSERNAME#$HOME#" pi-fleet-ssh-handler.desktop \
-  > ~/.local/share/applications/pi-fleet-ssh-handler.desktop
+sed "s#/home/YOURUSERNAME#$HOME#" piops-ssh-handler.desktop \
+  > ~/.local/share/applications/piops-ssh-handler.desktop
 
 # 3. Refresh the desktop database and register it as the default ssh: handler
 update-desktop-database ~/.local/share/applications
-xdg-mime default pi-fleet-ssh-handler.desktop x-scheme-handler/ssh
+xdg-mime default piops-ssh-handler.desktop x-scheme-handler/ssh
 ```
 
 Test it directly without even opening the browser:

@@ -44,7 +44,7 @@ router.post('/export', (req, res) => {
   });
 
   const blob = encryptWithPassphrase(passphrase, bundle);
-  res.json({ format: 'pi-fleet-dashboard-backup', version: 1, deviceCount: devices.length, ...blob });
+  res.json({ format: 'piops-backup', version: 1, deviceCount: devices.length, ...blob });
 });
 
 // Decrypts a previously exported file and creates any devices that aren't
@@ -55,8 +55,11 @@ router.post('/import', async (req, res) => {
   if (!passphrase || !file) {
     return res.status(400).json({ error: 'A passphrase and backup file are both required' });
   }
-  if (file.format !== 'pi-fleet-dashboard-backup' || !file.salt || !file.iv || !file.tag || !file.data) {
-    return res.status(400).json({ error: 'This does not look like a Pi Fleet Dashboard backup file' });
+  // Accept the legacy format string too, so a backup exported before the
+  // PiOps rename still imports correctly.
+  const validFormats = new Set(['piops-backup', 'pi-fleet-dashboard-backup']);
+  if (!validFormats.has(file.format) || !file.salt || !file.iv || !file.tag || !file.data) {
+    return res.status(400).json({ error: 'This does not look like a PiOps backup file' });
   }
 
   let bundle;

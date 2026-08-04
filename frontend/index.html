@@ -3,16 +3,29 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Pi Fleet Dashboard</title>
+<title>PiOps</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/xterm/5.3.0/css/xterm.min.css" />
 <link rel="stylesheet" href="style.css" />
+<script>
+// Applied here (not just in app.js, which loads at the end of body) so
+// there's no flash of the wrong theme while the page loads.
+(function () {
+  try {
+    var raw = localStorage.getItem('piOpsSettings') || localStorage.getItem('piFleetDashboardSettings');
+    var theme = raw ? (JSON.parse(raw).theme || 'dark') : 'dark';
+    document.documentElement.dataset.theme = theme;
+  } catch (e) {
+    document.documentElement.dataset.theme = 'dark';
+  }
+})();
+</script>
 </head>
 <body>
 
 <header class="topbar">
   <div class="brand">
     <span class="brand-led" id="fleetLed"></span>
-    <span class="brand-name">PI FLEET DASHBOARD</span>
+    <span class="brand-name">PI OPS</span>
     <span class="brand-version" id="brandVersion"></span>
     <a class="update-badge" id="updateBadge" href="#" target="_blank" rel="noopener" hidden></a>
   </div>
@@ -61,184 +74,202 @@
 
 <!-- Settings modal -->
 <div class="modal-backdrop" id="settingsModalBackdrop" hidden>
-  <div class="modal">
+  <div class="modal modal-wide">
     <div class="modal-header">
       <h2>Settings</h2>
       <button class="modal-close" id="settingsModalClose">&times;</button>
     </div>
     <div class="modal-body">
-      <div class="form-row">
-        <label>Units</label>
-        <div class="segmented" id="unitSystemSegmented">
-          <button type="button" class="segmented-opt" data-value="metric">Metric</button>
-          <button type="button" class="segmented-opt" data-value="imperial">Imperial</button>
-        </div>
-      </div>
-      <div class="form-row">
-        <label>Temperature</label>
-        <div class="segmented" id="tempUnitSegmented">
-          <button type="button" class="segmented-opt" data-value="C">&deg;C</button>
-          <button type="button" class="segmented-opt" data-value="F">&deg;F</button>
-        </div>
-      </div>
-      <p class="form-note">Switching Metric/Imperial sets a matching default for temperature (Celsius or Fahrenheit) &mdash; you can still pick the temperature unit independently afterward. Saved on this browser only.</p>
-
-      <div class="form-row">
-        <label>"Open in local terminal" link</label>
-        <div class="segmented" id="localAppSegmented">
-          <button type="button" class="segmented-opt" data-value="system">System default</button>
-          <button type="button" class="segmented-opt" data-value="putty">PuTTY</button>
-          <button type="button" class="segmented-opt" data-value="winscp">WinSCP</button>
-        </div>
-        <p class="form-note">PuTTY needs a one-time protocol registration on Windows &mdash; see "Windows integration" in the README for a ready-made script. WinSCP registers its own link handler automatically when installed with default options.</p>
+      <div class="detail-tabs" id="settingsTabsBar">
+        <button type="button" class="settings-tab-btn active" data-settings-tab="general">General</button>
+        <button type="button" class="settings-tab-btn" data-settings-tab="devices">Devices</button>
+        <button type="button" class="settings-tab-btn" data-settings-tab="alerts">Alerts</button>
+        <button type="button" class="settings-tab-btn" data-settings-tab="security">Security</button>
+        <button type="button" class="settings-tab-btn" data-settings-tab="commands">Commands</button>
+        <button type="button" class="settings-tab-btn" data-settings-tab="backup">Backup</button>
       </div>
 
-      <hr class="modal-divider" />
+      <div class="tab-panel" id="settingsPanelGeneral">
+        <div class="form-row">
+          <label>Theme</label>
+          <div class="segmented" id="themeSegmented">
+            <button type="button" class="segmented-opt" data-value="dark">Dark</button>
+            <button type="button" class="segmented-opt" data-value="light">Light</button>
+          </div>
+        </div>
+        <div class="form-row">
+          <label>Units</label>
+          <div class="segmented" id="unitSystemSegmented">
+            <button type="button" class="segmented-opt" data-value="metric">Metric</button>
+            <button type="button" class="segmented-opt" data-value="imperial">Imperial</button>
+          </div>
+        </div>
+        <div class="form-row">
+          <label>Temperature</label>
+          <div class="segmented" id="tempUnitSegmented">
+            <button type="button" class="segmented-opt" data-value="C">&deg;C</button>
+            <button type="button" class="segmented-opt" data-value="F">&deg;F</button>
+          </div>
+        </div>
+        <p class="form-note">Switching Metric/Imperial sets a matching default for temperature (Celsius or Fahrenheit) &mdash; you can still pick the temperature unit independently afterward. Saved on this browser only.</p>
 
-      <div class="form-row">
-        <label>Alerts</label>
-        <p class="form-note">Get a webhook notification when a device goes offline/comes back, a Pi reports under-voltage or throttling, or a stat crosses a threshold you set. Runs server-side on a poll-to-poll basis, so it works even if this tab isn't open.</p>
-        <div class="segmented" id="alertsEnabledSegmented">
-          <button type="button" class="segmented-opt" data-value="on">On</button>
-          <button type="button" class="segmented-opt" data-value="off">Off</button>
+        <div class="form-row">
+          <label>"Open in local terminal" link</label>
+          <div class="segmented" id="localAppSegmented">
+            <button type="button" class="segmented-opt" data-value="system">System default</button>
+            <button type="button" class="segmented-opt" data-value="putty">PuTTY</button>
+            <button type="button" class="segmented-opt" data-value="winscp">WinSCP</button>
+          </div>
+          <p class="form-note">PuTTY needs a one-time protocol registration on Windows &mdash; see "Windows integration" in the README for a ready-made script. WinSCP registers its own link handler automatically when installed with default options.</p>
         </div>
       </div>
-      <div class="form-row two-col">
-        <div>
-          <label for="alertWebhookUrl">Webhook URL</label>
-          <input id="alertWebhookUrl" type="text" placeholder="https://..." />
-        </div>
-        <div>
-          <label for="alertFormat">Format</label>
-          <select id="alertFormat">
-            <option value="generic">Generic JSON</option>
-            <option value="discord">Discord</option>
-            <option value="slack">Slack</option>
-            <option value="ntfy">ntfy.sh (plain text)</option>
-          </select>
-        </div>
-      </div>
-      <div class="form-row">
-        <label>Notify me when&hellip;</label>
-        <label class="checkbox-row"><input type="checkbox" id="alertOffline" /> A device goes offline</label>
-        <label class="checkbox-row"><input type="checkbox" id="alertRecovery" /> A device comes back online</label>
-        <label class="checkbox-row"><input type="checkbox" id="alertUndervoltage" /> Under-voltage is detected (Pi power issue)</label>
-        <label class="checkbox-row"><input type="checkbox" id="alertThrottled" /> CPU throttling is detected</label>
-      </div>
-      <div class="form-row">
-        <label>Threshold alerts</label>
-        <div class="threshold-row">
-          <label class="checkbox-row"><input type="checkbox" id="alertCpuEnabled" /> CPU over</label>
-          <input id="alertCpuThreshold" type="number" min="1" max="100" /><span>%</span>
-        </div>
-        <div class="threshold-row">
-          <label class="checkbox-row"><input type="checkbox" id="alertMemEnabled" /> Memory over</label>
-          <input id="alertMemThreshold" type="number" min="1" max="100" /><span>%</span>
-        </div>
-        <div class="threshold-row">
-          <label class="checkbox-row"><input type="checkbox" id="alertDiskEnabled" /> Disk over</label>
-          <input id="alertDiskThreshold" type="number" min="1" max="100" /><span>%</span>
-        </div>
-        <div class="threshold-row">
-          <label class="checkbox-row"><input type="checkbox" id="alertTempEnabled" /> Temp over</label>
-          <input id="alertTempThreshold" type="number" min="1" max="120" /><span>&deg;C (always Celsius here, regardless of the display setting above)</span>
-        </div>
-      </div>
-      <div class="form-actions">
-        <span class="test-result" id="alertResult"></span>
-        <button type="button" class="btn btn-ghost" id="alertTestBtn">Send test alert</button>
-        <button type="button" class="btn btn-primary" id="alertSaveBtn">Save alert settings</button>
-      </div>
 
-      <hr class="modal-divider" />
-
-      <div class="form-row">
-        <label>Security</label>
-        <p class="form-note">Adds a password gate in front of this whole dashboard. Off by default. This is a single shared password, not a full user system &mdash; meant for keeping this off casual/unintended access on your LAN, not for exposing it to the internet on its own.</p>
-        <div class="segmented" id="authEnabledSegmented">
-          <button type="button" class="segmented-opt" data-value="on">On</button>
-          <button type="button" class="segmented-opt" data-value="off">Off</button>
-        </div>
-      </div>
-      <div class="form-row">
-        <label for="authCurrentPassword" id="authCurrentPasswordLabel" hidden>Current password</label>
-        <input id="authCurrentPassword" type="password" hidden />
-      </div>
-      <div class="form-row">
-        <label for="authNewPassword" id="authNewPasswordLabel">New password</label>
-        <input id="authNewPassword" type="password" placeholder="At least 8 characters" />
-      </div>
-      <div class="form-actions">
-        <span class="test-result" id="authResult"></span>
-        <button type="button" class="btn btn-primary" id="authSaveBtn">Save security settings</button>
-      </div>
-
-      <hr class="modal-divider" />
-
-      <div class="form-row">
-        <label>Import devices from CSV</label>
-        <p class="form-note">Columns: name, host, port, username, group, authType (password or key), secret, passphrase. Existing devices (matched by host/port/username) are skipped.</p>
-        <input id="csvFile" type="file" accept=".csv,text/csv" />
-      </div>
-      <div class="form-actions">
-        <span class="test-result" id="csvImportResult"></span>
-        <button type="button" class="btn btn-ghost btn-sm" id="csvTemplateBtn">Download template</button>
-        <button type="button" class="btn btn-ghost" id="csvImportBtn">Import CSV</button>
-      </div>
-
-      <hr class="modal-divider" />
-
-      <div class="form-row">
-        <label>Device groups</label>
-        <p class="form-note">Manage the group names offered in the "Add device" dropdown. Removing a group here doesn't change any device already assigned to it.</p>
-        <div class="group-add-row">
-          <input id="newGroupName" type="text" placeholder="New group name" />
-          <button type="button" class="btn btn-ghost btn-sm" id="addGroupBtn">Add</button>
-        </div>
-        <div class="group-list" id="groupList"></div>
-      </div>
-
-      <hr class="modal-divider" />
-
-      <div class="form-row">
-        <label>Custom quick commands</label>
-        <p class="form-note">Define reusable commands that show up as buttons on every device's Actions tab. These run with whatever privileges the device's SSH account has &mdash; treat this like handing out limited root access, and only add commands you trust. Each run still requires confirming the exact command text on the device it's run against. Passwordless sudo needs to be configured for anything your command uses <code>sudo</code> for, same as the built-in quick actions.</p>
-        <input id="newCommandLabel" type="text" placeholder="Button label, e.g. Update packages" />
-        <textarea id="newCommandText" rows="2" placeholder="Command to run, e.g. sudo -n apt-get update && sudo -n DEBIAN_FRONTEND=noninteractive apt-get -y upgrade" style="margin-top: 8px;"></textarea>
-        <div class="threshold-row" style="margin-top: 8px;">
-          <span style="color: var(--text-muted); font-size: 12px;">Timeout</span>
-          <input id="newCommandTimeout" type="number" min="5" max="1800" value="120" style="width: 70px;" />
-          <span>seconds (default 120; raise this for things like package upgrades)</span>
+      <div class="tab-panel" id="settingsPanelDevices" hidden>
+        <div class="form-row">
+          <label>Import devices from CSV</label>
+          <p class="form-note">Columns: name, host, port, username, group, authType (password or key), secret, passphrase. Existing devices (matched by host/port/username) are skipped.</p>
+          <input id="csvFile" type="file" accept=".csv,text/csv" />
         </div>
         <div class="form-actions">
-          <button type="button" class="btn btn-ghost" id="addCommandBtn">Add command</button>
+          <span class="test-result" id="csvImportResult"></span>
+          <button type="button" class="btn btn-ghost btn-sm" id="csvTemplateBtn">Download template</button>
+          <button type="button" class="btn btn-ghost" id="csvImportBtn">Import CSV</button>
         </div>
-        <div class="command-list" id="commandList"></div>
+
+        <hr class="modal-divider" />
+
+        <div class="form-row">
+          <label>Device groups</label>
+          <p class="form-note">Manage the group names offered in the "Add device" dropdown. Removing a group here doesn't change any device already assigned to it.</p>
+          <div class="group-add-row">
+            <input id="newGroupName" type="text" placeholder="New group name" />
+            <button type="button" class="btn btn-ghost btn-sm" id="addGroupBtn">Add</button>
+          </div>
+          <div class="group-list" id="groupList"></div>
+        </div>
       </div>
 
-      <hr class="modal-divider" />
-
-      <div class="form-row">
-        <label>Export backup</label>
-        <p class="form-note">Bundles every device (including its saved credential) and these unit preferences into one file, encrypted with a passphrase you choose here. That passphrase is never stored &mdash; keep it somewhere safe, you'll need it to restore.</p>
-        <input id="exportPassphrase" type="password" placeholder="Passphrase (at least 8 characters)" />
+      <div class="tab-panel" id="settingsPanelAlerts" hidden>
+        <div class="form-row">
+          <label>Alerts</label>
+          <p class="form-note">Get a webhook notification when a device goes offline/comes back, a Pi reports under-voltage or throttling, or a stat crosses a threshold you set. Runs server-side on a poll-to-poll basis, so it works even if this tab isn't open.</p>
+          <div class="segmented" id="alertsEnabledSegmented">
+            <button type="button" class="segmented-opt" data-value="on">On</button>
+            <button type="button" class="segmented-opt" data-value="off">Off</button>
+          </div>
+        </div>
+        <div class="form-row two-col">
+          <div>
+            <label for="alertWebhookUrl">Webhook URL</label>
+            <input id="alertWebhookUrl" type="text" placeholder="https://..." />
+          </div>
+          <div>
+            <label for="alertFormat">Format</label>
+            <select id="alertFormat">
+              <option value="generic">Generic JSON</option>
+              <option value="discord">Discord</option>
+              <option value="slack">Slack</option>
+              <option value="ntfy">ntfy.sh (plain text)</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <label>Notify me when&hellip;</label>
+          <label class="checkbox-row"><input type="checkbox" id="alertOffline" /> A device goes offline</label>
+          <label class="checkbox-row"><input type="checkbox" id="alertRecovery" /> A device comes back online</label>
+          <label class="checkbox-row"><input type="checkbox" id="alertUndervoltage" /> Under-voltage is detected (Pi power issue)</label>
+          <label class="checkbox-row"><input type="checkbox" id="alertThrottled" /> CPU throttling is detected</label>
+        </div>
+        <div class="form-row">
+          <label>Threshold alerts</label>
+          <div class="threshold-row">
+            <label class="checkbox-row"><input type="checkbox" id="alertCpuEnabled" /> CPU over</label>
+            <input id="alertCpuThreshold" type="number" min="1" max="100" /><span>%</span>
+          </div>
+          <div class="threshold-row">
+            <label class="checkbox-row"><input type="checkbox" id="alertMemEnabled" /> Memory over</label>
+            <input id="alertMemThreshold" type="number" min="1" max="100" /><span>%</span>
+          </div>
+          <div class="threshold-row">
+            <label class="checkbox-row"><input type="checkbox" id="alertDiskEnabled" /> Disk over</label>
+            <input id="alertDiskThreshold" type="number" min="1" max="100" /><span>%</span>
+          </div>
+          <div class="threshold-row">
+            <label class="checkbox-row"><input type="checkbox" id="alertTempEnabled" /> Temp over</label>
+            <input id="alertTempThreshold" type="number" min="1" max="120" /><span>&deg;C (always Celsius here, regardless of the display setting above)</span>
+          </div>
+        </div>
+        <div class="form-actions">
+          <span class="test-result" id="alertResult"></span>
+          <button type="button" class="btn btn-ghost" id="alertTestBtn">Send test alert</button>
+          <button type="button" class="btn btn-primary" id="alertSaveBtn">Save alert settings</button>
+        </div>
       </div>
-      <div class="form-actions">
-        <span class="test-result" id="exportResult"></span>
-        <button type="button" class="btn btn-ghost" id="exportBtn">Download backup</button>
+
+      <div class="tab-panel" id="settingsPanelSecurity" hidden>
+        <div class="form-row">
+          <label>Security</label>
+          <p class="form-note">Adds a password gate in front of this whole dashboard. Off by default. This is a single shared password, not a full user system &mdash; meant for keeping this off casual/unintended access on your LAN, not for exposing it to the internet on its own.</p>
+          <div class="segmented" id="authEnabledSegmented">
+            <button type="button" class="segmented-opt" data-value="on">On</button>
+            <button type="button" class="segmented-opt" data-value="off">Off</button>
+          </div>
+        </div>
+        <div class="form-row">
+          <label for="authCurrentPassword" id="authCurrentPasswordLabel" hidden>Current password</label>
+          <input id="authCurrentPassword" type="password" hidden />
+        </div>
+        <div class="form-row">
+          <label for="authNewPassword" id="authNewPasswordLabel">New password</label>
+          <input id="authNewPassword" type="password" placeholder="At least 8 characters" />
+        </div>
+        <div class="form-actions">
+          <span class="test-result" id="authResult"></span>
+          <button type="button" class="btn btn-primary" id="authSaveBtn">Save security settings</button>
+        </div>
       </div>
 
-      <hr class="modal-divider" />
-
-      <div class="form-row">
-        <label>Restore from backup</label>
-        <p class="form-note">Adds any devices from the file that aren't already here (matched by host, port, and username) &mdash; existing devices are left untouched.</p>
-        <input id="importFile" type="file" accept="application/json" />
-        <input id="importPassphrase" type="password" placeholder="Backup passphrase" style="margin-top: 8px;" />
+      <div class="tab-panel" id="settingsPanelCommands" hidden>
+        <div class="form-row">
+          <label>Custom quick commands</label>
+          <p class="form-note">Define reusable commands that show up as buttons on every device's Actions tab. These run with whatever privileges the device's SSH account has &mdash; treat this like handing out limited root access, and only add commands you trust. Each run still requires confirming the exact command text on the device it's run against. Passwordless sudo needs to be configured for anything your command uses <code>sudo</code> for, same as the built-in quick actions.</p>
+          <input id="newCommandLabel" type="text" placeholder="Button label, e.g. Update packages" />
+          <textarea id="newCommandText" rows="2" placeholder="Command to run, e.g. sudo -n apt-get update && sudo -n DEBIAN_FRONTEND=noninteractive apt-get -y upgrade" style="margin-top: 8px;"></textarea>
+          <div class="threshold-row" style="margin-top: 8px;">
+            <span style="color: var(--text-muted); font-size: 12px;">Timeout</span>
+            <input id="newCommandTimeout" type="number" min="5" max="1800" value="120" style="width: 70px;" />
+            <span>seconds (default 120; raise this for things like package upgrades)</span>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn btn-ghost" id="addCommandBtn">Add command</button>
+          </div>
+          <div class="command-list" id="commandList"></div>
+        </div>
       </div>
-      <div class="form-actions">
-        <span class="test-result" id="importResult"></span>
-        <button type="button" class="btn btn-ghost" id="importBtn">Restore devices</button>
+
+      <div class="tab-panel" id="settingsPanelBackup" hidden>
+        <div class="form-row">
+          <label>Export backup</label>
+          <p class="form-note">Bundles every device (including its saved credential) and these unit preferences into one file, encrypted with a passphrase you choose here. That passphrase is never stored &mdash; keep it somewhere safe, you'll need it to restore.</p>
+          <input id="exportPassphrase" type="password" placeholder="Passphrase (at least 8 characters)" />
+        </div>
+        <div class="form-actions">
+          <span class="test-result" id="exportResult"></span>
+          <button type="button" class="btn btn-ghost" id="exportBtn">Download backup</button>
+        </div>
+
+        <hr class="modal-divider" />
+
+        <div class="form-row">
+          <label>Restore from backup</label>
+          <p class="form-note">Adds any devices from the file that aren't already here (matched by host, port, and username) &mdash; existing devices are left untouched.</p>
+          <input id="importFile" type="file" accept="application/json" />
+          <input id="importPassphrase" type="password" placeholder="Backup passphrase" style="margin-top: 8px;" />
+        </div>
+        <div class="form-actions">
+          <span class="test-result" id="importResult"></span>
+          <button type="button" class="btn btn-ghost" id="importBtn">Restore devices</button>
+        </div>
       </div>
     </div>
   </div>

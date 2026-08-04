@@ -1,4 +1,4 @@
-# Pi Fleet Dashboard
+# PiOps
 
 A self-hosted, agentless control panel for a fleet of Raspberry Pis (or any
 SSH-reachable Linux box): live stats, service and open-port visibility, an
@@ -40,7 +40,7 @@ do: over SSH.
 
 Those are all good tools built for a different job. The honest comparison:
 
-| | Pi Fleet Dashboard | Grafana + Prometheus | Netdata | Uptime Kuma |
+| | PiOps | Grafana + Prometheus | Netdata | Uptime Kuma |
 |---|---|---|---|---|
 | Agent required on each device | **No** — SSH only | Yes (node_exporter) | Yes (netdata agent) | No, but HTTP/TCP checks only |
 | Fleet-wide system stats (CPU/mem/disk/temp) | Yes | Yes | Yes, in depth | No |
@@ -79,6 +79,7 @@ than just a viewer.
 - **Optional password gate** — Settings → Security lets you put a single shared password in front of the whole dashboard; off by default
 - **Mobile-friendly** — checking your fleet from a phone works: wrapping toolbars, scrollable tables instead of squished columns, and near-fullscreen modals on narrow screens
 - **One-line installer** — `install.sh` handles Node.js, cloning, the dedicated system user, and the systemd service in one command; safe to re-run later as an update
+- **Light/dark theme** — Settings → General; defaults to dark
 - **In-browser SSH terminal** — click "Terminal" on any card for a real xterm.js session proxied over SSH
 - **"Open in local terminal"** — hands off to your system's default `ssh://` handler, or launch PuTTY / WinSCP directly (pick one in Settings; see "Windows integration" below)
 - **Settings** — Metric/Imperial and °C/°F display preference, view mode, local terminal app, saved per-browser
@@ -98,8 +99,8 @@ Node.js if needed, clones this repo, creates a dedicated system user,
 and installs it as a systemd service in one go):
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/wy2c73/pi-fleet-dashboard/main/install.sh \
-  | PI_FLEET_REPO_URL=https://github.com/wy2c73/pi-fleet-dashboard.git bash
+curl -sSL https://raw.githubusercontent.com/wy2c73/piops/main/install.sh \
+  | PIOPS_REPO_URL=https://github.com/wy2c73/piops.git bash
 ```
 
 Safe to re-run later -- it updates in place instead of starting over, so this is also
@@ -113,6 +114,8 @@ See [INSTALL.md](INSTALL.md) for detailed, step-by-step manual install
 instructions including system and software requirements, if you'd
 rather do it by hand or aren't on a Debian-family system. Short version:
 
+(Removing it later? See [UNINSTALL.md](UNINSTALL.md).)
+
 ```bash
 cd backend
 npm install
@@ -125,7 +128,7 @@ running this on a Synology NAS via Container Manager.
 On startup it prints every LAN IP it's reachable on, e.g.:
 
 ```
-Pi Fleet Dashboard listening on 0.0.0.0:3000
+PiOps listening on 0.0.0.0:3000
   -> http://localhost:3000
   -> http://192.168.1.50:3000
 ```
@@ -153,17 +156,17 @@ To restrict it to localhost only (e.g. if you're putting a reverse proxy in fron
 So it survives reboots on your dedicated Pi:
 
 ```ini
-# /etc/systemd/system/pi-fleet-dashboard.service
+# /etc/systemd/system/piops.service
 [Unit]
-Description=Pi Fleet Dashboard dashboard
+Description=PiOps
 After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/opt/pi-fleet-dashboard/backend
+WorkingDirectory=/opt/piops/backend
 ExecStart=/usr/bin/node server.js
 Restart=on-failure
-User=pifleet
+User=piops
 Environment=PORT=3000
 
 [Install]
@@ -171,11 +174,11 @@ WantedBy=multi-user.target
 ```
 
 ```bash
-sudo cp -r pi-fleet-dashboard /opt/pi-fleet-dashboard
-sudo useradd -r -s /usr/sbin/nologin pifleet
-sudo chown -R pifleet:pifleet /opt/pi-fleet-dashboard
-cd /opt/pi-fleet-dashboard/backend && sudo -u pifleet npm install --omit=dev
-sudo systemctl enable --now pi-fleet-dashboard
+sudo cp -r piops /opt/piops
+sudo useradd -r -s /usr/sbin/nologin piops
+sudo chown -R piops:piops /opt/piops
+cd /opt/piops/backend && sudo -u piops npm install --omit=dev
+sudo systemctl enable --now piops
 ```
 
 ## Network scanning
@@ -227,7 +230,7 @@ otherwise) running the `ssh` client built into Windows 10 (1809+) and
 Windows 11 -- nothing extra to install.
 
 1. Copy `windows/ssh-protocol-handler.vbs` from this repo somewhere
-   permanent, e.g. `C:\Tools\pi-fleet-dashboard\`.
+   permanent, e.g. `C:\Tools\piops\`.
 2. Open `windows/register-ssh-protocol.reg` in a text editor and replace
    the placeholder path with wherever you put the `.vbs` file in step 1.
 3. Double-click the edited `.reg` file and confirm the prompt.
@@ -245,7 +248,7 @@ If you'd rather use one of these specifically:
 - **PuTTY** doesn't understand URLs on its own, so it needs the same kind
   of one-time setup as above:
   1. Copy `windows/putty-protocol-handler.vbs` from this repo somewhere
-     permanent on the Windows machine, e.g. `C:\Tools\pi-fleet-dashboard\`.
+     permanent on the Windows machine, e.g. `C:\Tools\piops\`.
   2. Open `windows/register-putty-protocol.reg` in a text editor and replace
      the placeholder path with wherever you put the `.vbs` file in step 1.
   3. Double-click the edited `.reg` file and confirm the prompt.
@@ -273,7 +276,7 @@ via `GET /api/version`. See [CHANGELOG.md](CHANGELOG.md) for release history.
 **`EADDRINUSE: address already in use 0.0.0.0:3000`** &mdash; something's
 already listening on port 3000, most often a previous `node server.js`
 that wasn't stopped, or the systemd service already running. Check
-`sudo systemctl status pi-fleet-dashboard` first; if that's active you
+`sudo systemctl status piops` first; if that's active you
 don't need to (and shouldn't) also run `npm start` manually. Otherwise
 find and stop the other process: `sudo lsof -i :3000`, then `kill <PID>`.
 
@@ -320,7 +323,7 @@ these to work, add a sudoers
 rule on each device you want to control, scoped to only what you need:
 
 ```bash
-# On the monitored Pi, run: sudo visudo -f /etc/sudoers.d/pi-fleet-dashboard
+# On the monitored Pi, run: sudo visudo -f /etc/sudoers.d/piops
 # and add a line like this (replace "pi" with the account this dashboard uses):
 pi ALL=(ALL) NOPASSWD: /usr/sbin/reboot, /usr/sbin/shutdown, /usr/bin/systemctl restart *, /usr/bin/systemctl start *, /usr/bin/systemctl stop *
 ```
@@ -416,3 +419,7 @@ fleet actions, Docker deployment, update notifications, and an optional
 password gate. The main thing still on the table if you want it later:
 historical charts (persisting stats to disk/SQLite instead of memory-only,
 for real trend lines instead of just the current snapshot).
+
+## License
+
+[MIT](LICENSE)

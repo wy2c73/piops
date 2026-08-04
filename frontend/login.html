@@ -3,8 +3,19 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Pi Fleet Dashboard &mdash; Sign in</title>
+<title>PiOps &mdash; Sign in</title>
 <link rel="stylesheet" href="style.css" />
+<script>
+(function () {
+  try {
+    var raw = localStorage.getItem('piOpsSettings') || localStorage.getItem('piFleetDashboardSettings');
+    var theme = raw ? (JSON.parse(raw).theme || 'dark') : 'dark';
+    document.documentElement.dataset.theme = theme;
+  } catch (e) {
+    document.documentElement.dataset.theme = 'dark';
+  }
+})();
+</script>
 </head>
 <body>
 
@@ -12,7 +23,7 @@
   <div class="login-box">
     <div class="login-brand">
       <span class="brand-led led-online"></span>
-      <span class="brand-name">PI FLEET DASHBOARD</span>
+      <span class="brand-name">PI OPS</span>
     </div>
     <form id="loginForm">
       <div class="form-row">

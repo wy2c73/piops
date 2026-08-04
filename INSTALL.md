@@ -1,4 +1,4 @@
-# Installing Pi Fleet Dashboard
+# Installing PiOps
 
 This guide covers a from-scratch install on the machine that will host the
 dashboard (a dedicated Raspberry Pi, per the recommended setup) running a
@@ -54,8 +54,8 @@ npm -v
 Either clone it with git:
 
 ```bash
-git clone <your-repository-url> pi-fleet-dashboard
-cd pi-fleet-dashboard
+git clone <your-repository-url> piops
+cd piops
 ```
 
 ...or copy the extracted project folder over with `scp`/`rsync` from
@@ -81,7 +81,7 @@ npm start
 You should see something like:
 
 ```
-Pi Fleet Dashboard listening on 0.0.0.0:3000
+PiOps listening on 0.0.0.0:3000
   -> http://localhost:3000
   -> http://192.168.1.50:3000
 ```
@@ -98,27 +98,27 @@ check the Pi's firewall (`sudo ufw allow 3000/tcp` if `ufw` is active).
 This keeps it running after reboots and restarts it if it crashes.
 
 ```bash
-sudo mkdir -p /opt/pi-fleet-dashboard
-sudo cp -r . /opt/pi-fleet-dashboard/
-sudo useradd -r -s /usr/sbin/nologin pifleet
-sudo chown -R pifleet:pifleet /opt/pi-fleet-dashboard
-cd /opt/pi-fleet-dashboard/backend
-sudo -u pifleet npm install --omit=dev
+sudo mkdir -p /opt/piops
+sudo cp -r . /opt/piops/
+sudo useradd -r -s /usr/sbin/nologin piops
+sudo chown -R piops:piops /opt/piops
+cd /opt/piops/backend
+sudo -u piops npm install --omit=dev
 ```
 
-Create `/etc/systemd/system/pi-fleet-dashboard.service`:
+Create `/etc/systemd/system/piops.service`:
 
 ```ini
 [Unit]
-Description=Pi Fleet Dashboard
+Description=PiOps
 After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/opt/pi-fleet-dashboard/backend
+WorkingDirectory=/opt/piops/backend
 ExecStart=/usr/bin/node server.js
 Restart=on-failure
-User=pifleet
+User=piops
 Environment=PORT=3000
 
 [Install]
@@ -129,8 +129,8 @@ Then:
 
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl enable --now pi-fleet-dashboard
-sudo systemctl status pi-fleet-dashboard
+sudo systemctl enable --now piops
+sudo systemctl status piops
 ```
 
 ## 6. Configure the devices to monitor
@@ -146,11 +146,11 @@ Everything from here happens in the web UI &mdash; no config files to hand-edit:
 ## Upgrading later
 
 ```bash
-cd /opt/pi-fleet-dashboard
-sudo systemctl stop pi-fleet-dashboard
+cd /opt/piops
+sudo systemctl stop piops
 # pull/copy the new version over the old files, then:
-cd backend && sudo -u pifleet npm install --omit=dev
-sudo systemctl start pi-fleet-dashboard
+cd backend && sudo -u piops npm install --omit=dev
+sudo systemctl start piops
 ```
 
 Your device registry (`backend/data/devices.json`) and encryption key
@@ -161,12 +161,18 @@ portable, passphrase-protected way to do it.
 
 To get a small "update available" badge in the dashboard's top bar when a
 newer version exists on your GitHub repo, set `GITHUB_REPO` before starting
-it, e.g. add `Environment=GITHUB_REPO=wy2c73/pi-fleet-dashboard` to
+it, e.g. add `Environment=GITHUB_REPO=wy2c73/piops` to
 the systemd service file above. This only checks and displays a
 notification &mdash; it never updates anything automatically. There's no
 equivalent automatic-update pipeline for native installs (unlike the
 Docker + Watchtower option in [DOCKER.md](DOCKER.md)); applying the
 upgrade steps above is still a manual step.
+
+## Uninstalling
+
+See [UNINSTALL.md](UNINSTALL.md) for the full removal steps (systemd
+service, install directory, dedicated system user, and optional cleanup
+of anything else it touched).
 
 ## Troubleshooting
 
