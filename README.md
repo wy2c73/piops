@@ -78,7 +78,7 @@ than just a viewer.
 - **Network scanning** — sweep your local subnet for hosts with SSH open and bulk-add whichever you select, using one shared username/credential for the batch
 - **Optional password gate** — Settings → Security lets you put a single shared password in front of the whole dashboard; off by default
 - **Mobile-friendly** — checking your fleet from a phone works: wrapping toolbars, scrollable tables instead of squished columns, and near-fullscreen modals on narrow screens
-- **One-line installer** — `install.sh` handles Node.js, cloning, the dedicated system user, and the systemd service in one command; safe to re-run later as an update
+- **One-line installer** — `install.sh` handles Node.js, cloning, the dedicated system user, and the systemd service in one command; safe to re-run later as an update. `uninstall.sh` reverses it just as easily, with a confirmation prompt first
 - **Light/dark theme** — Settings → General; defaults to dark
 - **In-browser SSH terminal** — click "Terminal" on any card for a real xterm.js session proxied over SSH
 - **"Open in local terminal"** — hands off to your system's default `ssh://` handler, or launch PuTTY / WinSCP directly (pick one in Settings; see "Windows integration" below)
@@ -94,27 +94,37 @@ than just a viewer.
 
 ## Setup
 
-**Fastest path** (fresh Raspberry Pi OS/Debian/Ubuntu machine, sets up
-Node.js if needed, clones this repo, creates a dedicated system user,
-and installs it as a systemd service in one go):
+**Fastest path** (fresh Raspberry Pi OS/Debian/Ubuntu machine): one
+command sets up Node.js if needed, clones this repo, creates a
+dedicated system user, and installs it as a systemd service.
 
+**Install:**
 ```bash
-curl -sSL https://raw.githubusercontent.com/wy2c73/piops/main/install.sh \
-  | PIOPS_REPO_URL=https://github.com/wy2c73/piops.git bash
+curl -sSL https://raw.githubusercontent.com/wy2c73/piops/main/install.sh | bash
 ```
 
-Safe to re-run later -- it updates in place instead of starting over, so this is also
-how you'd pull in a new version. See the comments at the top of
-`install.sh` for exactly what it does and which environment variables
-let you customize the install directory, service user, or port. It's a
-plain, readable script under 200 lines -- reading it before running it
-is entirely reasonable instead of piping straight to bash.
+**Upgrade** (same command -- safe to re-run, updates in place instead
+of starting over):
+```bash
+curl -sSL https://raw.githubusercontent.com/wy2c73/piops/main/install.sh | bash
+```
+
+**Uninstall** (asks for confirmation before removing anything; see
+[UNINSTALL.md](UNINSTALL.md) for what this does, the Docker
+equivalent, and further optional cleanup):
+```bash
+curl -sSL https://raw.githubusercontent.com/wy2c73/piops/main/uninstall.sh | bash
+```
+
+See the comments at the top of `install.sh`/`uninstall.sh` for exactly
+what each does and which environment variables let you customize the
+install directory, service user, or port. Both are plain, readable
+scripts under 200 lines -- reading one before running it is entirely
+reasonable instead of piping straight to bash.
 
 See [INSTALL.md](INSTALL.md) for detailed, step-by-step manual install
 instructions including system and software requirements, if you'd
 rather do it by hand or aren't on a Debian-family system. Short version:
-
-(Removing it later? See [UNINSTALL.md](UNINSTALL.md).)
 
 ```bash
 cd backend

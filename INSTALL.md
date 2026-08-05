@@ -145,6 +145,16 @@ Everything from here happens in the web UI &mdash; no config files to hand-edit:
 
 ## Upgrading later
 
+If you installed with `install.sh` (see the main README), the same
+one-liner is also the upgrade command -- it detects the existing install
+and updates in place instead of starting over:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/wy2c73/piops/main/install.sh | bash
+```
+
+Upgrading a manual install instead:
+
 ```bash
 cd /opt/piops
 sudo systemctl stop piops
@@ -160,8 +170,11 @@ upgrades regardless &mdash; or use Settings &rarr; Export backup, which is the
 portable, passphrase-protected way to do it.
 
 To get a small "update available" badge in the dashboard's top bar when a
-newer version exists on your GitHub repo, set `GITHUB_REPO` before starting
-it, e.g. add `Environment=GITHUB_REPO=wy2c73/piops` to
+newer version exists on your GitHub repo: if you used `install.sh`
+against a plain `github.com` URL, this is already configured for you
+automatically, nothing further needed. Setting it up for a manual
+install: set `GITHUB_REPO` before starting it, e.g. add
+`Environment=GITHUB_REPO=wy2c73/piops` to
 the systemd service file above. This only checks and displays a
 notification &mdash; it never updates anything automatically. There's no
 equivalent automatic-update pipeline for native installs (unlike the
@@ -170,9 +183,15 @@ upgrade steps above is still a manual step.
 
 ## Uninstalling
 
-See [UNINSTALL.md](UNINSTALL.md) for the full removal steps (systemd
-service, install directory, dedicated system user, and optional cleanup
-of anything else it touched).
+**One command** (asks for confirmation before removing anything):
+
+```bash
+curl -sSL https://raw.githubusercontent.com/wy2c73/piops/main/uninstall.sh | bash
+```
+
+See [UNINSTALL.md](UNINSTALL.md) for what this does, the Docker
+equivalent, doing it by hand instead, and optional cleanup of anything
+else PiOps touched.
 
 ## Troubleshooting
 

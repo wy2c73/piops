@@ -145,6 +145,18 @@ run_as_service_user "cd '$INSTALL_DIR/backend' && npm install --omit=dev"
 
 # ---- 6. systemd service ----
 SERVICE_FILE="/etc/systemd/system/piops.service"
+
+# If REPO_URL is a plain github.com HTTPS URL, derive "owner/repo" so the
+# dashboard's "update available" badge (Settings -> General shows it,
+# powered by GITHUB_REPO) works immediately with no extra configuration.
+# Left unset -- the badge just stays off, same as if this were never
+# run -- for anything this doesn't recognize (a fork hosted elsewhere,
+# an SSH-style URL, a local path used for testing).
+GITHUB_REPO_SLUG=""
+if [[ "$REPO_URL" =~ ^https://github\.com/([^/]+)/([^/]+)/?$ ]]; then
+  GITHUB_REPO_SLUG="${BASH_REMATCH[1]}/${BASH_REMATCH[2]%.git}"
+fi
+
 log "Writing $SERVICE_FILE"
 $SUDO tee "$SERVICE_FILE" >/dev/null <<EOF
 [Unit]
@@ -158,6 +170,7 @@ ExecStart=/usr/bin/node server.js
 Restart=on-failure
 User=${SERVICE_USER}
 Environment=PORT=${PORT}
+$( [[ -n "$GITHUB_REPO_SLUG" ]] && echo "Environment=GITHUB_REPO=${GITHUB_REPO_SLUG}" )
 
 [Install]
 WantedBy=multi-user.target

@@ -10,8 +10,27 @@ with everything else.
 
 ## Native install (systemd)
 
-This reverses exactly what `install.sh` (or the manual systemd steps in
-INSTALL.md) set up:
+**One command** (asks for confirmation before removing anything):
+
+```bash
+curl -sSL https://raw.githubusercontent.com/wy2c73/piops/main/uninstall.sh | bash
+```
+
+Non-interactive use (e.g. scripted): set `PIOPS_UNINSTALL_YES=1` to skip
+the confirmation prompt.
+
+If you customized the install directory or service user at install time
+(via `PIOPS_INSTALL_DIR`/`PIOPS_SERVICE_USER`), set the same variables
+here so it removes the right things:
+```bash
+curl -sSL https://raw.githubusercontent.com/wy2c73/piops/main/uninstall.sh \
+  | PIOPS_INSTALL_DIR=/your/path PIOPS_SERVICE_USER=your-user bash
+```
+
+### Doing it by hand instead
+
+This is exactly what `uninstall.sh` (or the manual systemd steps in
+INSTALL.md) reverses:
 
 ```bash
 sudo systemctl stop piops

@@ -1,5 +1,41 @@
 # Changelog
 
+## 1.17.0
+
+- **One-line uninstall** (`uninstall.sh`), matching `install.sh` for
+  parity: stops/disables the service, removes the install directory
+  and dedicated system user. Unlike install, this is destructive, so it
+  asks for confirmation by default (reading from `/dev/tty` specifically,
+  since normal stdin is consumed by the piped script itself) -- set
+  `PIOPS_UNINSTALL_YES=1` to skip the prompt for scripted use. Tested all
+  three paths for real: declining (confirmed nothing gets touched),
+  confirming via an actual pseudo-terminal (not just reading the code),
+  and the non-interactive env-var path -- all three verified against
+  real before/after filesystem state. Caught and fixed a real bug during
+  this testing: `systemctl daemon-reload` had no failure tolerance,
+  so on any system where that call fails for any reason, `set -e` would
+  have killed the script before it reached the (more important) steps of
+  actually removing the install directory and system user.
+- **`install.sh` now auto-configures the "update available" badge.**
+  It already existed (since 1.8.0) but needed `GITHUB_REPO` set
+  manually. Since `install.sh` already knows the repo URL, it now
+  derives `owner/repo` from it automatically (when it's a plain
+  `github.com` HTTPS URL) and adds it to the generated systemd service
+  -- the badge just works after a one-line install, zero extra config.
+  Falls back to leaving it unset (badge stays off, exactly like before)
+  for anything it doesn't recognize -- a fork hosted elsewhere, an
+  SSH-style URL, etc. Worth noting for anyone reading the diff: an
+  earlier version of this used a "non-greedy" regex quantifier to strip
+  a trailing `.git` from the URL, which doesn't actually exist in the
+  POSIX-ERE dialect bash's `[[ =~ ]]` uses (that's PCRE syntax) --
+  caught by testing it against real URLs rather than assuming the
+  regex worked, and replaced with plain, reliable bash suffix-stripping
+  instead.
+- README/INSTALL.md/UNINSTALL.md reorganized so install, upgrade, and
+  uninstall are each a single clearly-labeled command in one place,
+  instead of upgrade being implied ("re-run install.sh") and uninstall
+  requiring a multi-step manual sequence.
+
 ## 1.16.3
 
 - Added a show/hide toggle (eye icon) to every password field in the
