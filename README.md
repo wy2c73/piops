@@ -191,6 +191,16 @@ cd /opt/piops/backend && sudo -u piops npm install --omit=dev
 sudo systemctl enable --now piops
 ```
 
+To watch what it's doing (or see the error if something's wrong):
+
+```bash
+sudo journalctl -u piops -f
+```
+
+This shows a live feed of the service's log output, updating in real
+time as new lines come in. Press `Ctrl+C` to stop watching (this
+doesn't stop the service, just the log view).
+
 ## Network scanning
 
 "Scan network" in the toolbar sweeps a subnet (auto-detected from the

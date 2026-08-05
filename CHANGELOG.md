@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.17.1
+
+- Added `sudo journalctl -u piops -f` to the "Run it as a systemd
+  service" sections of both README.md and INSTALL.md, with a
+  plain-language explanation (a live feed of the service's log output,
+  not a one-time snapshot) for anyone less familiar with Linux
+  commands. Also updated the wiki's Troubleshooting page with the same
+  tip plus the Docker equivalent (`docker compose logs -f`) -- delivered
+  separately from this zip since the wiki lives in its own repo outside
+  this project.
+
 ## 1.17.0
 
 - **One-line uninstall** (`uninstall.sh`), matching `install.sh` for

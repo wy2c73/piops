@@ -133,6 +133,17 @@ sudo systemctl enable --now piops
 sudo systemctl status piops
 ```
 
+To watch what it's doing (or see the error if something's wrong):
+
+```bash
+sudo journalctl -u piops -f
+```
+
+This shows a live feed of the service's log output, updating in real
+time as new lines come in -- useful right after starting it, or any
+time something isn't behaving as expected. Press `Ctrl+C` to stop
+watching (this doesn't stop the service, just the log view).
+
 ## 6. Configure the devices to monitor
 
 Everything from here happens in the web UI &mdash; no config files to hand-edit:
