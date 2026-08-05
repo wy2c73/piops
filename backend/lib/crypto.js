@@ -6,8 +6,9 @@
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const { DATA_DIR } = require('./dataDir');
 
-const KEY_PATH = path.join(__dirname, '..', 'data', '.key');
+const KEY_PATH = path.join(DATA_DIR, '.key');
 const ALGO = 'aes-256-gcm';
 
 function loadOrCreateKey() {

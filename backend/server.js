@@ -112,15 +112,23 @@ server.on('upgrade', (req, socket, head) => {
   }
 });
 
-poller.start();
+// Starting the poller and binding to a port are real side effects that
+// tests need to avoid -- guard them so `require('./server')` (used by
+// the test suite to get the Express app) doesn't also start polling
+// devices or bind a port. Running it normally (`node server.js`) is
+// completely unaffected: require.main === module is true in that case,
+// so this still runs exactly as before.
+if (require.main === module) {
+  poller.start();
 
-server.listen(PORT, HOST, () => {
-  console.log(`PiOps listening on ${HOST}:${PORT}`);
-  console.log(`  -> http://localhost:${PORT}`);
-  for (const addr of listLanAddresses()) {
-    console.log(`  -> http://${addr}:${PORT}`);
-  }
-});
+  server.listen(PORT, HOST, () => {
+    console.log(`PiOps listening on ${HOST}:${PORT}`);
+    console.log(`  -> http://localhost:${PORT}`);
+    for (const addr of listLanAddresses()) {
+      console.log(`  -> http://${addr}:${PORT}`);
+    }
+  });
+}
 
 function listLanAddresses() {
   const os = require('os');
@@ -132,3 +140,5 @@ function listLanAddresses() {
   }
   return results;
 }
+
+module.exports = { app, server };

@@ -1,5 +1,52 @@
 # Changelog
 
+## 1.18.0
+
+- **Automated test suite** (`npm test` in `backend/`), using Node's
+  built-in test runner -- no new dependency. 40 tests across 8 files,
+  running in under 3 seconds:
+  - Backend API tested end-to-end against the real Express app:
+    devices, groups, alerts, backup export/import (including the
+    legacy pre-rename format string), and the full auth/session gate
+    (login, wrong password, disable requiring current password,
+    login.html staying reachable).
+  - Unit tests for logic that's had real bugs before: version
+    comparison, CIDR parsing/IP sorting, password hashing and session
+    token tamper-resistance.
+  - `install.sh`'s URL-parsing (`GITHUB_REPO` derivation) is tested by
+    extracting and sourcing the function directly from the real file,
+    not a separate copy -- can't silently drift from what the script
+    actually does.
+  - Proved these actually catch regressions rather than just passing
+    trivially: deliberately broke the version-comparison logic, the
+    legacy-backup-format compatibility, and the install.sh regex, and
+    confirmed each corresponding test failed, then restored and
+    re-confirmed passing.
+- **Refactored for testability**, both changes backward compatible with
+  zero effect on normal operation:
+  - `server.js` now exports `{ app, server }` and guards
+    `poller.start()`/`server.listen()` behind a `require.main ===
+    module` check, so tests can import the real app without starting a
+    real server or polling actual devices. Running it normally (`node
+    server.js`) is completely unaffected.
+  - New `lib/dataDir.js` centralizes the data directory path behind an
+    overridable `PIOPS_DATA_DIR` env var (`store.js`/`auth.js`/
+    `crypto.js` updated to use it), so tests run against a fully
+    isolated temp directory and never touch a real device registry.
+  - `install.sh`'s URL-derivation logic was pulled into a named
+    function (`derive_github_repo_slug`) specifically so it could be
+    sourced and tested directly -- no behavior change, verified with a
+    full fresh-install re-test afterward.
+- Also caught two bugs in the tests themselves while writing them (not
+  app bugs): wrong expected HTTP status codes for device creation/
+  deletion (the app correctly uses 201/204, standard REST conventions,
+  which I'd assumed were 200), and a regex in the CIDR test that didn't
+  actually match the real error message. Both fixed before landing.
+- Documented in the README ("Running tests"), including what this
+  suite deliberately doesn't cover (real SSH, real browser rendering)
+  and still needs the kind of manual testing used throughout this
+  project.
+
 ## 1.17.1
 
 - Added `sudo journalctl -u piops -f` to the "Run it as a systemd

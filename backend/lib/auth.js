@@ -9,9 +9,10 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { DATA_DIR } = require('./dataDir');
 
-const AUTH_PATH = path.join(__dirname, '..', 'data', 'auth.json');
-const SESSION_SECRET_PATH = path.join(__dirname, '..', 'data', '.session-secret');
+const AUTH_PATH = path.join(DATA_DIR, 'auth.json');
+const SESSION_SECRET_PATH = path.join(DATA_DIR, '.session-secret');
 const SESSION_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days -- personal tool, not re-prompting constantly
 
 function loadOrCreateSessionSecret() {

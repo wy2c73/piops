@@ -1,11 +1,12 @@
 {
   "name": "piops-backend",
-  "version": "1.17.1",
+  "version": "1.18.0",
   "description": "PiOps \u2014 agentless SSH-based monitoring dashboard for a Raspberry Pi fleet",
   "main": "server.js",
   "type": "commonjs",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node --test test/*.test.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

@@ -431,6 +431,29 @@ keep the dashboard from being casually reachable by anyone else on your LAN
 (a housemate, a guest on the WiFi, another device that gets compromised), not
 to be a complete access-control solution on its own.
 
+## Running tests
+
+```bash
+cd backend
+npm test
+```
+
+Uses Node's built-in test runner (no extra dependency). Covers the
+backend API end-to-end against the real Express app (devices, groups,
+alerts, backup export/import including the legacy pre-rename format,
+and the auth/session gate), plus the trickier pieces of logic that have
+actually had real bugs before (CIDR parsing, version comparison, and
+`install.sh`'s URL-parsing -- that last one is extracted and sourced
+directly from the real file, not a separate copy, so it can't silently
+drift from what the script actually does).
+
+What it deliberately doesn't cover: actual SSH to a real device, or
+anything needing a real browser (the mobile layout and modal-scroll
+fixes, for instance) -- those still need the kind of manual,
+real-environment testing used throughout this project's development.
+Tests use an isolated temp data directory (`PIOPS_DATA_DIR`), so running
+them never touches your real device registry.
+
 ## What's next
 
 This now covers device management (including network scanning), live stats,

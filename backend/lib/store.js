@@ -6,11 +6,12 @@ const fs = require('fs');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const { encrypt, decrypt } = require('./crypto');
+const { DATA_DIR } = require('./dataDir');
 
-const DATA_PATH = path.join(__dirname, '..', 'data', 'devices.json');
-const GROUPS_PATH = path.join(__dirname, '..', 'data', 'groups.json');
-const ALERTS_PATH = path.join(__dirname, '..', 'data', 'alerts.json');
-const COMMANDS_PATH = path.join(__dirname, '..', 'data', 'customCommands.json');
+const DATA_PATH = path.join(DATA_DIR, 'devices.json');
+const GROUPS_PATH = path.join(DATA_DIR, 'groups.json');
+const ALERTS_PATH = path.join(DATA_DIR, 'alerts.json');
+const COMMANDS_PATH = path.join(DATA_DIR, 'customCommands.json');
 
 function load() {
   if (!fs.existsSync(DATA_PATH)) return [];
