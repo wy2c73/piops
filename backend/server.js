@@ -23,6 +23,7 @@ const scanRouter = require('./routes/scan');
 const authRouter = require('./routes/auth');
 const auth = require('./lib/auth');
 const { checkForUpdate } = require('./lib/updateCheck');
+const autoBackup = require('./lib/autoBackup');
 const poller = require('./poller');
 const wsTerminal = require('./wsTerminal');
 
@@ -120,6 +121,13 @@ server.on('upgrade', (req, socket, head) => {
 // so this still runs exactly as before.
 if (require.main === module) {
   poller.start();
+
+  // Checked hourly -- cheap no-op unless a backup is actually due (see
+  // lib/autoBackup.js). Also runs once at startup so a backup that was
+  // due while the server was down gets caught up on promptly rather
+  // than waiting for the next hourly tick.
+  autoBackup.maybeRunScheduledBackup();
+  setInterval(() => autoBackup.maybeRunScheduledBackup(), 60 * 60 * 1000);
 
   server.listen(PORT, HOST, () => {
     console.log(`PiOps listening on ${HOST}:${PORT}`);

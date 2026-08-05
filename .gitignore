@@ -6,5 +6,7 @@ node_modules/
 **/data/customCommands.json
 **/data/auth.json
 **/data/.session-secret
+**/data/autoBackupConfig.json
+**/data/auto-backups/
 /data/
 *.log

@@ -209,6 +209,7 @@ $('#settingsBtn').addEventListener('click', () => {
   applyAlertConfigUI();
   renderCommandList();
   applyAuthUI();
+  loadAutoBackup();
   switchSettingsTab('general');
   $('#settingsModalBackdrop').hidden = false;
 });
@@ -443,6 +444,114 @@ $('#importBtn').addEventListener('click', async () => {
     await loadCustomCommands();
     renderCommandList();
     refreshVisibleUnits();
+  } catch (err) {
+    resultEl.textContent = err.message;
+    resultEl.classList.add('fail');
+  }
+});
+
+// ---------------------------------------------------------------- automatic backups
+function formatBackupDate(iso) {
+  return new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+}
+
+function formatBackupSize(bytes) {
+  return bytes < 1024 ? `${bytes} B` : `${(bytes / 1024).toFixed(1)} KB`;
+}
+
+async function loadAutoBackup() {
+  try {
+    const res = await fetch('/api/backup/auto');
+    const { config, backups } = await res.json();
+    document.querySelectorAll('#autoBackupEnabledSegmented .segmented-opt').forEach((b) => b.classList.toggle('active', (b.dataset.value === 'on') === config.enabled));
+    document.querySelectorAll('#autoBackupIntervalSegmented .segmented-opt').forEach((b) => b.classList.toggle('active', Number(b.dataset.value) === config.intervalHours));
+    $('#autoBackupRetention').value = config.retentionCount;
+    renderAutoBackupList(backups);
+  } catch (err) {
+    console.error('Could not load automatic backup config:', err);
+  }
+}
+
+function renderAutoBackupList(backups) {
+  const listEl = $('#autoBackupList');
+  if (!backups.length) {
+    listEl.innerHTML = '<p class="muted" style="padding: 10px 12px;">No automatic backups yet.</p>';
+    return;
+  }
+  listEl.innerHTML = backups
+    .map(
+      (b) => `
+    <div class="auto-backup-row">
+      <span class="auto-backup-date">${escapeHtml(formatBackupDate(b.createdAt))}</span>
+      <span class="auto-backup-size">${formatBackupSize(b.sizeBytes)}</span>
+      <button type="button" class="btn btn-ghost btn-sm auto-backup-restore-btn" data-filename="${escapeHtml(b.filename)}">Restore</button>
+    </div>`
+    )
+    .join('');
+}
+
+document.querySelectorAll('#autoBackupEnabledSegmented .segmented-opt, #autoBackupIntervalSegmented .segmented-opt').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll(`#${btn.parentElement.id} .segmented-opt`).forEach((b) => b.classList.toggle('active', b === btn));
+  });
+});
+
+$('#autoBackupSaveBtn').addEventListener('click', async () => {
+  const resultEl = $('#autoBackupConfigResult');
+  const enabled = $('#autoBackupEnabledSegmented .segmented-opt.active')?.dataset.value === 'on';
+  const intervalHours = Number($('#autoBackupIntervalSegmented .segmented-opt.active')?.dataset.value || 24);
+  const retentionCount = Number($('#autoBackupRetention').value);
+
+  resultEl.textContent = 'Saving\u2026';
+  resultEl.className = 'test-result';
+  try {
+    const res = await fetch('/api/backup/auto/config', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enabled, intervalHours, retentionCount }),
+    });
+    const body = await res.json();
+    if (!res.ok) throw new Error(body.error || 'Save failed');
+    resultEl.textContent = 'Saved';
+    resultEl.classList.add('ok');
+  } catch (err) {
+    resultEl.textContent = err.message;
+    resultEl.classList.add('fail');
+  }
+});
+
+$('#autoBackupRunNowBtn').addEventListener('click', async () => {
+  const resultEl = $('#autoBackupConfigResult');
+  resultEl.textContent = 'Backing up\u2026';
+  resultEl.className = 'test-result';
+  try {
+    const res = await fetch('/api/backup/auto/run-now', { method: 'POST' });
+    const body = await res.json();
+    if (!res.ok) throw new Error(body.error || 'Backup failed');
+    resultEl.textContent = `Backed up ${body.deviceCount} device${body.deviceCount === 1 ? '' : 's'}`;
+    resultEl.classList.add('ok');
+    await loadAutoBackup();
+  } catch (err) {
+    resultEl.textContent = err.message;
+    resultEl.classList.add('fail');
+  }
+});
+
+$('#autoBackupList').addEventListener('click', async (e) => {
+  const btn = e.target.closest('.auto-backup-restore-btn');
+  if (!btn) return;
+  if (!confirm('Restore devices from this automatic backup? Devices already present are left untouched -- nothing existing gets overwritten.')) return;
+
+  const resultEl = $('#autoBackupConfigResult');
+  resultEl.textContent = 'Restoring\u2026';
+  resultEl.className = 'test-result';
+  try {
+    const res = await fetch(`/api/backup/auto/${encodeURIComponent(btn.dataset.filename)}/restore`, { method: 'POST' });
+    const body = await res.json();
+    if (!res.ok) throw new Error(body.error || 'Restore failed');
+    resultEl.textContent = `Restored ${body.imported} device${body.imported === 1 ? '' : 's'}` + (body.skipped ? `, skipped ${body.skipped} already present` : '');
+    resultEl.classList.add('ok');
+    await loadDevices();
   } catch (err) {
     resultEl.textContent = err.message;
     resultEl.classList.add('fail');

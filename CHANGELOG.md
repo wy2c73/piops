@@ -1,5 +1,33 @@
 # Changelog
 
+## 1.19.0
+
+- **Automatic backups** (Settings → Backup), on by default. Takes a
+  periodic server-side snapshot -- daily or weekly, configurable
+  retention (default: keep the last 7) -- encrypted with this install's
+  own at-rest key rather than a passphrase, since nothing's present to
+  type one in on a schedule. Includes a "Back up now" button and a list
+  of existing snapshots each with its own Restore button.
+  Documented honestly, in the UI itself: this protects against an
+  accidental bulk delete or a bad edit, **not** against the whole disk/
+  SD card failing, since these backups live in the same place as
+  everything else -- the manual, off-device export is still what you
+  want for real disaster recovery.
+  Refactored `routes/backup.js` first: extracted the shared bundle-
+  build/apply logic into `lib/backupBundle.js` so manual (passphrase)
+  and automatic (local-key) backups both use the same code instead of
+  duplicating it -- confirmed the refactor didn't break anything by
+  running the existing backup tests immediately after, before adding
+  anything new.
+  Added 14 new tests (9 unit + 5 HTTP-level), all passing alongside the
+  existing 40 (54 total). Caught and fixed a real bug while testing:
+  the restore filename validation didn't account for the trailing "Z"
+  in ISO timestamps, which would have rejected every legitimately-
+  generated backup filename. Also specifically verified path-traversal
+  attempts are rejected, retention pruning keeps exactly the newest N
+  files, and a real server boot correctly took its first automatic
+  backup on startup.
+
 ## 1.18.0
 
 - **Automated test suite** (`npm test` in `backend/`), using Node's

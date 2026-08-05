@@ -282,6 +282,36 @@
           <span class="test-result" id="importResult"></span>
           <button type="button" class="btn btn-ghost" id="importBtn">Restore devices</button>
         </div>
+
+        <hr class="modal-divider" />
+
+        <div class="form-row">
+          <label>Automatic backups</label>
+          <p class="form-note">Takes a periodic snapshot on the server, encrypted with this install's own key (no passphrase to manage) &mdash; a safety net against an accidental bulk delete or a bad edit, not a substitute for the manual export above. <strong>This does not protect against the whole disk/SD card failing</strong> &mdash; these backups live in the same place as everything else. For real disaster recovery, still periodically take a manual export and store it somewhere else entirely.</p>
+          <div class="segmented" id="autoBackupEnabledSegmented">
+            <button type="button" class="segmented-opt" data-value="on">On</button>
+            <button type="button" class="segmented-opt" data-value="off">Off</button>
+          </div>
+        </div>
+        <div class="form-row two-col">
+          <div>
+            <label>Frequency</label>
+            <div class="segmented" id="autoBackupIntervalSegmented">
+              <button type="button" class="segmented-opt" data-value="24">Daily</button>
+              <button type="button" class="segmented-opt" data-value="168">Weekly</button>
+            </div>
+          </div>
+          <div>
+            <label for="autoBackupRetention">Keep last</label>
+            <input id="autoBackupRetention" type="number" min="1" max="30" />
+          </div>
+        </div>
+        <div class="form-actions">
+          <span class="test-result" id="autoBackupConfigResult"></span>
+          <button type="button" class="btn btn-ghost" id="autoBackupRunNowBtn">Back up now</button>
+          <button type="button" class="btn btn-primary" id="autoBackupSaveBtn">Save</button>
+        </div>
+        <div class="auto-backup-list" id="autoBackupList"></div>
       </div>
     </div>
   </div>

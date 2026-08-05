@@ -446,6 +446,16 @@ textarea { resize: vertical; font-family: var(--mono); }
 
 .command-list { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
 
+.auto-backup-list { max-height: 200px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius); margin-top: 10px; }
+.auto-backup-row {
+  display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+  border-bottom: 1px solid var(--border); font-size: 12.5px;
+}
+.auto-backup-row:last-child { border-bottom: none; }
+.auto-backup-date { font-family: var(--mono); }
+.auto-backup-size { color: var(--text-dim); font-size: 11px; }
+.auto-backup-row .btn { margin-left: auto; flex-shrink: 0; }
+
 .scan-results-list { max-height: 240px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius); margin-top: 8px; }
 .scan-result-row {
   display: flex; align-items: center; gap: 10px; padding: 8px 12px;

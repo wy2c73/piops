@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const store = require('../lib/store');
-const poller = require('../poller');
 const { encryptWithPassphrase, decryptWithPassphrase } = require('../lib/crypto');
+const { buildBundle, applyBundle } = require('../lib/backupBundle');
+const autoBackup = require('../lib/autoBackup');
 
 const MIN_PASSPHRASE_LEN = 8;
 
@@ -16,40 +16,13 @@ router.post('/export', (req, res) => {
     return res.status(400).json({ error: `Passphrase must be at least ${MIN_PASSPHRASE_LEN} characters` });
   }
 
-  const devices = store.list().map((d) => {
-    const full = store.getWithSecret(d.id);
-    return {
-      id: full.id, // preserved on restore so a saved card order still resolves, even into a fresh install
-      name: full.name,
-      host: full.host,
-      port: full.port,
-      username: full.username,
-      authType: full.authType,
-      secret: full.secret,
-      passphrase: full.passphrase,
-      group: full.group,
-      tags: full.tags,
-      alertOverrides: full.alertOverrides,
-    };
-  });
-
-  const bundle = JSON.stringify({
-    exportedAt: new Date().toISOString(),
-    devices,
-    groups: store.listGroups(),
-    alerts: store.loadAlertConfig(),
-    commands: store.listCommands(),
-    settings: clientSettings || null,
-    order: order || null,
-  });
-
-  const blob = encryptWithPassphrase(passphrase, bundle);
-  res.json({ format: 'piops-backup', version: 1, deviceCount: devices.length, ...blob });
+  const bundle = buildBundle(clientSettings, order);
+  const blob = encryptWithPassphrase(passphrase, JSON.stringify(bundle));
+  res.json({ format: 'piops-backup', version: 1, deviceCount: bundle.devices.length, ...blob });
 });
 
-// Decrypts a previously exported file and creates any devices that aren't
-// already present (matched on host+port+username), so importing the same
-// file twice doesn't create duplicates.
+// Decrypts a previously exported file and applies it (creating any
+// devices that aren't already present).
 router.post('/import', async (req, res) => {
   const { passphrase, file } = req.body || {};
   if (!passphrase || !file) {
@@ -69,38 +42,38 @@ router.post('/import', async (req, res) => {
     return res.status(400).json({ error: 'Could not decrypt this file -- check the passphrase' });
   }
 
-  const existingKey = (d) => `${d.host}:${d.port}:${d.username}`.toLowerCase();
-  const seen = new Set(store.list().map(existingKey));
+  res.json(applyBundle(bundle));
+});
 
-  let imported = 0;
-  let skipped = 0;
-  const newIds = [];
-  for (const device of bundle.devices || []) {
-    const key = existingKey(device);
-    if (seen.has(key)) {
-      skipped++;
-      continue;
-    }
-    const created = store.create(device); // input.secret here is the plaintext credential; store.create() re-encrypts it with this install's own key
-    newIds.push(created.id);
-    seen.add(key);
-    imported++;
+// ---- Automatic backups (server-side, encrypted with this install's own
+// at-rest key -- see lib/autoBackup.js for the important limitation) ----
+
+router.get('/auto', (req, res) => {
+  res.json({ config: autoBackup.loadConfig(), backups: autoBackup.listBackups() });
+});
+
+router.put('/auto/config', (req, res) => {
+  try {
+    res.json(autoBackup.saveConfig(req.body || {}));
+  } catch (err) {
+    res.status(400).json({ error: err.message });
   }
+});
 
-  newIds.forEach((id) => poller.refreshDevice(id)); // don't block the response on these
-  (bundle.groups || []).forEach((name) => store.addGroup(name));
-  if (bundle.alerts) store.saveAlertConfig(bundle.alerts);
+router.post('/auto/run-now', (req, res) => {
+  try {
+    res.json(autoBackup.takeBackup());
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
-  const existingCommands = new Set(store.listCommands().map((c) => `${c.label}::${c.command}`));
-  (bundle.commands || []).forEach((c) => {
-    const key = `${c.label}::${c.command}`;
-    if (!existingCommands.has(key)) {
-      store.createCommand({ label: c.label, command: c.command, timeoutSec: c.timeoutSec });
-      existingCommands.add(key);
-    }
-  });
-
-  res.json({ imported, skipped, settings: bundle.settings || null, order: bundle.order || null });
+router.post('/auto/:filename/restore', (req, res) => {
+  try {
+    res.json(autoBackup.restoreBackup(req.params.filename));
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
 });
 
 module.exports = router;
