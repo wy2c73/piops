@@ -6,6 +6,7 @@ backend/data/alerts.json
 backend/data/customCommands.json
 backend/data/autoBackupConfig.json
 backend/data/auto-backups
+backend/data/clientSettings.json
 .git
 *.log
 windows

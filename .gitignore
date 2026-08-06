@@ -8,5 +8,6 @@ node_modules/
 **/data/.session-secret
 **/data/autoBackupConfig.json
 **/data/auto-backups/
+**/data/clientSettings.json
 /data/
 *.log

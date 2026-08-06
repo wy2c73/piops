@@ -12,6 +12,7 @@ const DATA_PATH = path.join(DATA_DIR, 'devices.json');
 const GROUPS_PATH = path.join(DATA_DIR, 'groups.json');
 const ALERTS_PATH = path.join(DATA_DIR, 'alerts.json');
 const COMMANDS_PATH = path.join(DATA_DIR, 'customCommands.json');
+const CLIENT_SETTINGS_PATH = path.join(DATA_DIR, 'clientSettings.json');
 
 function load() {
   if (!fs.existsSync(DATA_PATH)) return [];
@@ -127,6 +128,7 @@ module.exports = {
   list, get, getWithSecret, create, update, remove,
   listGroups, addGroup, removeGroup,
   loadAlertConfig, saveAlertConfig,
+  hasClientSettings, loadClientSettings, saveClientSettings,
   listCommands, getCommand, createCommand, removeCommand,
 };
 
@@ -233,6 +235,43 @@ function saveAlertConfig(partial) {
   };
   fs.mkdirSync(path.dirname(ALERTS_PATH), { recursive: true });
   fs.writeFileSync(ALERTS_PATH, JSON.stringify(updated, null, 2), { mode: 0o600 });
+  return updated;
+}
+
+// ---- Client settings (theme, units, view mode, local terminal app
+// choice, card order) -- synced across whatever browser/device opens
+// the dashboard, rather than living in one browser's localStorage only.
+
+const DEFAULT_CLIENT_SETTINGS = {
+  theme: 'dark',
+  unitSystem: 'metric',
+  tempUnit: 'C',
+  localApp: 'system',
+  viewMode: 'grid',
+  order: [],
+};
+
+// So the frontend can tell "never saved before, safe to migrate this
+// browser's existing localStorage values up" apart from "already has
+// real settings saved (possibly still at the defaults, on purpose)".
+function hasClientSettings() {
+  return fs.existsSync(CLIENT_SETTINGS_PATH);
+}
+
+function loadClientSettings() {
+  if (!fs.existsSync(CLIENT_SETTINGS_PATH)) return structuredClone(DEFAULT_CLIENT_SETTINGS);
+  try {
+    return { ...DEFAULT_CLIENT_SETTINGS, ...JSON.parse(fs.readFileSync(CLIENT_SETTINGS_PATH, 'utf8')) };
+  } catch {
+    return structuredClone(DEFAULT_CLIENT_SETTINGS);
+  }
+}
+
+function saveClientSettings(partial) {
+  const current = loadClientSettings();
+  const updated = { ...current, ...partial };
+  fs.mkdirSync(path.dirname(CLIENT_SETTINGS_PATH), { recursive: true });
+  fs.writeFileSync(CLIENT_SETTINGS_PATH, JSON.stringify(updated, null, 2), { mode: 0o600 });
   return updated;
 }
 

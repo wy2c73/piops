@@ -37,6 +37,14 @@ const LEGACY_SETTINGS_KEY = 'piFleetDashboardSettings';
 const LEGACY_ORDER_KEY = 'piFleetDashboardOrder';
 const defaultSettings = { theme: 'dark', unitSystem: 'metric', tempUnit: 'C', localApp: 'system', viewMode: 'grid' };
 
+// Settings/order now live on the server, shared across every browser and
+// device that opens this dashboard -- but localStorage is still read
+// synchronously here as a fast local *cache* of the last-known values,
+// specifically so the very first paint (before app.js has even finished
+// loading, let alone made a network request) can pick the right theme
+// without a flash of the wrong one. syncSettingsWithServer() reconciles
+// this cache against the real, authoritative server copy shortly after
+// boot, and re-applies anything that turns out to have changed elsewhere.
 function loadSettings() {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY) ?? localStorage.getItem(LEGACY_SETTINGS_KEY);
@@ -46,15 +54,29 @@ function loadSettings() {
   }
 }
 
-function saveSettings() {
+function cacheSettingsLocally() {
   try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch { /* storage unavailable; setting stays in-memory for this session */ }
+}
+
+// Updates the cache immediately (so this tab/browser reflects the change
+// right away) and pushes the change to the server in the background so
+// other browsers/devices pick it up next time they sync.
+async function saveSettings() {
+  cacheSettingsLocally();
+  try {
+    await fetch('/api/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(settings),
+    });
+  } catch (err) {
+    console.error('Could not sync settings to the server (saved locally in this browser for now):', err);
+  }
 }
 
 let settings = loadSettings();
 
-// Manual card order, kept separate from settings since it's purely a local
-// display preference tied to device IDs on this install (not worth bundling
-// into a portable backup file).
+// Manual card order -- same cache-plus-sync pattern as settings above.
 let orderIds = loadOrder();
 
 function loadOrder() {
@@ -66,8 +88,61 @@ function loadOrder() {
   }
 }
 
-function saveOrder() {
+function cacheOrderLocally() {
   try { localStorage.setItem(ORDER_KEY, JSON.stringify(orderIds)); } catch { /* non-essential */ }
+}
+
+async function saveOrder() {
+  cacheOrderLocally();
+  try {
+    await fetch('/api/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ order: orderIds }),
+    });
+  } catch (err) {
+    console.error('Could not sync card order to the server (saved locally in this browser for now):', err);
+  }
+}
+
+// Called once during boot. If the server has never had settings saved
+// before, this browser's current (cached) values become the server's
+// starting point -- a one-time migration so an existing user's per-
+// browser preferences aren't silently lost the first time this loads
+// after updating. Otherwise, the server is authoritative: merge its
+// values in, update the local cache to match, and re-apply anything
+// that turns out to differ from what the (possibly stale) cache had
+// already painted.
+async function syncSettingsWithServer() {
+  try {
+    const res = await fetch('/api/settings');
+    const { settings: serverSettings, everSaved } = await res.json();
+
+    if (!everSaved) {
+      await saveSettings();
+      await saveOrder();
+      return;
+    }
+
+    const { order: serverOrder, ...serverSettingsOnly } = serverSettings;
+    const newSettings = { ...defaultSettings, ...serverSettingsOnly };
+    const newOrder = serverOrder || [];
+    const changed = JSON.stringify(settings) !== JSON.stringify(newSettings)
+      || JSON.stringify(orderIds) !== JSON.stringify(newOrder);
+
+    settings = newSettings;
+    orderIds = newOrder;
+    cacheSettingsLocally();
+    cacheOrderLocally();
+
+    if (changed) {
+      applyTheme();
+      applySettingsUI();
+      refreshVisibleUnits();
+    }
+  } catch (err) {
+    console.error('Could not sync settings from the server (using this browser\'s local copy for now):', err);
+  }
 }
 
 // Applies the saved manual order to a device list; anything not yet in the
@@ -1918,6 +1993,7 @@ async function checkForUpdate() {
 }
 
 applyTheme();
+syncSettingsWithServer();
 loadVersion();
 checkForUpdate();
 loadAuthStatus();

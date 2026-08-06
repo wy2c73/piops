@@ -81,6 +81,7 @@ than just a viewer.
 - **One-line installer** — `install.sh` handles Node.js, cloning, the dedicated system user, and the systemd service in one command; safe to re-run later as an update. `uninstall.sh` reverses it just as easily, with a confirmation prompt first
 - **Light/dark theme** — Settings → General; defaults to dark
 - **Automatic backups** — periodic server-side snapshots (Settings → Backup), encrypted with this install's own key, no passphrase to manage; on by default. A safety net against an accidental bulk delete, not a substitute for the manual export
+- **Settings sync** — theme, units, view mode, local terminal app choice, and card order are stored on the server and shared across every browser/device that opens the dashboard, not stuck per-browser in localStorage. Migrates an existing browser's settings up automatically the first time it connects after updating, so nothing gets reset
 - **In-browser SSH terminal** — click "Terminal" on any card for a real xterm.js session proxied over SSH
 - **"Open in local terminal"** — hands off to your system's default `ssh://` handler, or launch PuTTY / WinSCP directly (pick one in Settings; see "Windows integration" below)
 - **Settings** — Metric/Imperial and °C/°F display preference, view mode, local terminal app, saved per-browser
@@ -439,10 +440,15 @@ cd backend
 npm test
 ```
 
-Uses Node's built-in test runner (no extra dependency). Covers the
-backend API end-to-end against the real Express app (devices, groups,
-alerts, backup export/import including the legacy pre-rename format,
-and the auth/session gate), plus the trickier pieces of logic that have
+Uses Node's built-in test runner, plus `jsdom` (a dev-only dependency --
+never installed in production; `npm install --omit=dev`, what
+`install.sh`/Docker actually use, skips it) for a couple of tests that
+need a real browser-like environment. Covers the backend API end-to-end
+against the real Express app (devices, groups, alerts, backup export/
+import including the legacy pre-rename format, automatic backups, the
+settings-sync API, and the auth/session gate), the settings-sync/
+migration logic in an actual jsdom environment with real localStorage
+and real network requests, and the trickier pieces of logic that have
 actually had real bugs before (CIDR parsing, version comparison, and
 `install.sh`'s URL-parsing -- that last one is extracted and sourced
 directly from the real file, not a separate copy, so it can't silently

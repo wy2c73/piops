@@ -1,5 +1,36 @@
 # Changelog
 
+## 1.20.0
+
+- **Settings sync across browsers/devices.** Theme, units, view mode,
+  local terminal app choice, and card order now live on the server
+  (`GET`/`PUT /api/settings`) instead of being stuck in one browser's
+  localStorage -- open the dashboard from your phone and your laptop
+  and they now show the same thing. The first browser to connect after
+  updating migrates its existing values up automatically (server has
+  "never saved before" -> push this browser's current values), so
+  nobody's existing preferences get silently reset. localStorage stays
+  in the picture as a fast local *cache*, specifically so the very
+  first paint can still pick the right theme instantly without a
+  flash-of-wrong-theme -- the server stays authoritative, and the cache
+  self-corrects (re-applying only if something's actually different)
+  shortly after each page load.
+  Tested in an actual jsdom browser environment (real localStorage,
+  real fetch against a real running test server), extracting the exact
+  sync/migration code by name straight from app.js rather than
+  reimplementing it for the test, so it can't silently drift from what
+  ships. jsdom added as a dev-only dependency -- confirmed `npm install
+  --omit=dev` (what install.sh/Docker actually use) does not pull it
+  into production.
+  This testing caught a real bug in the app logic itself, not just the
+  test: the "did anything actually change" check compared the full
+  settings object including an `order` field that only exists on the
+  server-stored version, so it was spuriously true on every sync
+  (harmless in effect -- it only meant needlessly re-applying an
+  unchanged theme -- but defeated the point of only re-applying on a
+  real change). Proved the fix mattered by reverting it and confirming
+  the test caught the regression, then restored it.
+
 ## 1.19.0
 
 - **Automatic backups** (Settings → Backup), on by default. Takes a

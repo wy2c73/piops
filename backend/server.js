@@ -20,6 +20,7 @@ const groupsRouter = require('./routes/groups');
 const alertsRouter = require('./routes/alerts');
 const commandsRouter = require('./routes/commands');
 const scanRouter = require('./routes/scan');
+const settingsRouter = require('./routes/settings');
 const authRouter = require('./routes/auth');
 const auth = require('./lib/auth');
 const { checkForUpdate } = require('./lib/updateCheck');
@@ -56,6 +57,7 @@ app.use('/api/groups', groupsRouter);
 app.use('/api/alerts', alertsRouter);
 app.use('/api/commands', commandsRouter);
 app.use('/api/scan', scanRouter);
+app.use('/api/settings', settingsRouter);
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 app.get('/api/version', (req, res) => res.json({ version: require('./package.json').version }));
 app.get('/api/version/check', async (req, res) => {
