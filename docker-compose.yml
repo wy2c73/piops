@@ -7,7 +7,7 @@ services:
     ports:
       # Host port : container port. Change the first number if 3000 is
       # already in use on your NAS/host (e.g. "8088:3000").
-      - "3000:3000"
+      - "8088:3000"
     volumes:
       # Persists the device registry, encryption key, groups, alert
       # config, and custom commands across container restarts/rebuilds.
