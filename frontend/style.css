@@ -471,6 +471,19 @@ textarea { resize: vertical; font-family: var(--mono); }
 .api-token-meta { color: var(--text-dim); font-size: 11px; }
 .api-token-row .btn { margin-left: auto; flex-shrink: 0; }
 
+.history-metric { margin-bottom: 18px; }
+.history-metric:last-child { margin-bottom: 0; }
+.history-metric-label {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-size: 12.5px; font-weight: 600; margin-bottom: 4px;
+}
+.history-metric-values { font-family: var(--mono); font-size: 11px; font-weight: 400; color: var(--text-muted); }
+.history-chart { width: 100%; line-height: 0; }
+.history-chart svg { width: 100%; height: 60px; display: block; }
+
+.card-sparkline { margin: 6px 0; color: var(--accent); opacity: 0.85; }
+.card-sparkline svg { width: 100%; height: 22px; display: block; }
+
 .scan-results-list { max-height: 240px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius); margin-top: 8px; }
 .scan-result-row {
   display: flex; align-items: center; gap: 10px; padding: 8px 12px;

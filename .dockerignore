@@ -8,6 +8,8 @@ backend/data/autoBackupConfig.json
 backend/data/auto-backups
 backend/data/clientSettings.json
 backend/data/apiTokens.json
+backend/data/statsHistoryConfig.json
+backend/data/stats-history
 .git
 *.log
 windows

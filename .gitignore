@@ -10,5 +10,7 @@ node_modules/
 **/data/auto-backups/
 **/data/clientSettings.json
 **/data/apiTokens.json
+**/data/statsHistoryConfig.json
+**/data/stats-history/
 /data/
 *.log

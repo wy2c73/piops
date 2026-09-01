@@ -5,6 +5,7 @@
 const store = require('./lib/store');
 const { collectStats } = require('./lib/ssh');
 const alertEngine = require('./lib/alertEngine');
+const statsHistory = require('./lib/statsHistory');
 
 const POLL_INTERVAL_MS = Number(process.env.POLL_INTERVAL_MS || 15000);
 const CONCURRENCY = Number(process.env.POLL_CONCURRENCY || 5);
@@ -39,6 +40,7 @@ async function pollDevice(device) {
   const stats = await collectStats(device);
   cache.set(device.id, stats);
   broadcast(device.id, stats);
+  statsHistory.maybeRecordSample(device.id, stats); // no-op unless the feature is enabled, see lib/statsHistory.js
   alertEngine.evaluate(device, previousStats, stats).catch((err) => {
     console.error(`[alerts] evaluate() threw for ${device.name}:`, err.message);
   });

@@ -23,9 +23,16 @@ const appJsSource = fs.readFileSync(APP_JS, 'utf8');
 function extractFunction(name) {
   const startMatch = appJsSource.match(new RegExp(`(?:async )?function ${name}\\([^)]*\\)\\s*\\{`));
   if (!startMatch) throw new Error(`Could not find function ${name}() in app.js -- has it been renamed or restructured?`);
-  const start = startMatch.index;
+  // Start counting braces from the body's own opening brace (the last
+  // character startMatch captured), not the function name -- a
+  // destructured parameter list can contain a {...} that closes before
+  // the body even begins, which would otherwise be mistaken for it.
+  // Doesn't currently affect any function extracted here (none take a
+  // destructured parameter today), but fixed proactively rather than
+  // leaving a brace-counter that only works by accident.
+  const bodyStart = startMatch.index + startMatch[0].length - 1;
   let depth = 0;
-  let i = start;
+  let i = bodyStart;
   for (; i < appJsSource.length; i++) {
     if (appJsSource[i] === '{') depth++;
     if (appJsSource[i] === '}') {
@@ -33,7 +40,7 @@ function extractFunction(name) {
       if (depth === 0) { i++; break; }
     }
   }
-  return appJsSource.slice(start, i);
+  return appJsSource.slice(startMatch.index, i);
 }
 
 function extractLine(pattern) {

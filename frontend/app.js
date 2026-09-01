@@ -15,6 +15,7 @@ window.fetch = async (...args) => {
 
 let devices = [];       // last known device list (without secrets)
 let statsCache = {};    // deviceId -> stats, kept fresh via websocket
+let historyCache = {};  // deviceId -> stats-history samples, for the sparkline on cards/rows
 let activeDeviceId = null;
 let selectedIds = new Set(); // devices checked for bulk actions
 let term = null, fitAddon = null, termSocket = null;
@@ -285,6 +286,7 @@ $('#settingsBtn').addEventListener('click', () => {
   renderCommandList();
   applyAuthUI();
   loadAutoBackup();
+  loadStatsHistoryConfig();
   switchSettingsTab('general');
   $('#settingsModalBackdrop').hidden = false;
 });
@@ -721,6 +723,173 @@ $('#autoBackupList').addEventListener('click', async (e) => {
   }
 });
 
+// ---------------------------------------------------------------- stats history
+let statsHistoryConfig = { enabled: false, retentionDays: 7, sparklineEnabled: true };
+
+async function loadStatsHistoryConfig() {
+  try {
+    const res = await fetch('/api/stats-history/config');
+    statsHistoryConfig = await res.json();
+    document.querySelectorAll('#statsHistoryEnabledSegmented .segmented-opt').forEach((b) => b.classList.toggle('active', (b.dataset.value === 'on') === statsHistoryConfig.enabled));
+    document.querySelectorAll('#statsHistoryRetentionSegmented .segmented-opt').forEach((b) => b.classList.toggle('active', Number(b.dataset.value) === statsHistoryConfig.retentionDays));
+    document.querySelectorAll('#statsHistorySparklineSegmented .segmented-opt').forEach((b) => b.classList.toggle('active', (b.dataset.value === 'on') === statsHistoryConfig.sparklineEnabled));
+  } catch (err) {
+    console.error('Could not load stats history config:', err);
+  }
+}
+
+document.querySelectorAll('#statsHistoryEnabledSegmented .segmented-opt, #statsHistoryRetentionSegmented .segmented-opt, #statsHistorySparklineSegmented .segmented-opt').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll(`#${btn.parentElement.id} .segmented-opt`).forEach((b) => b.classList.toggle('active', b === btn));
+  });
+});
+
+$('#statsHistorySaveBtn').addEventListener('click', async () => {
+  const resultEl = $('#statsHistoryConfigResult');
+  const enabled = $('#statsHistoryEnabledSegmented .segmented-opt.active')?.dataset.value === 'on';
+  const retentionDays = Number($('#statsHistoryRetentionSegmented .segmented-opt.active')?.dataset.value || 7);
+  const sparklineEnabled = $('#statsHistorySparklineSegmented .segmented-opt.active')?.dataset.value === 'on';
+
+  resultEl.textContent = 'Saving\u2026';
+  resultEl.className = 'test-result';
+  try {
+    const res = await fetch('/api/stats-history/config', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enabled, retentionDays, sparklineEnabled }),
+    });
+    const body = await res.json();
+    if (!res.ok) throw new Error(body.error || 'Save failed');
+    statsHistoryConfig = body;
+    resultEl.textContent = 'Saved';
+    resultEl.classList.add('ok');
+    refreshVisibleUnits(); // sparkline visibility on cards/rows may have just changed
+  } catch (err) {
+    resultEl.textContent = err.message;
+    resultEl.classList.add('fail');
+  }
+});
+
+// Builds a simple line chart as an inline SVG string. Used for both the
+// bigger per-metric charts on the History tab and the small sparkline on
+// cards/rows -- same function, different size/style options. Hand-rolled
+// rather than pulling in a charting library: the data is simple enough
+// (one line, evenly spaced points) that ~20 lines of SVG math covers it,
+// which is the threshold this project uses for "write it directly"
+// (see CONTRIBUTING.md).
+//
+// Uses stroke="currentColor" / fill="currentColor" rather than a
+// hardcoded color, so the chart's color follows whatever CSS `color`
+// the containing element has -- automatically theme-aware without
+// needing to know the current theme's accent hex value here.
+function buildLineChartSvg(values, { width = 120, height = 32, strokeWidth = 1.5, showArea = false } = {}) {
+  const clean = values.filter((v) => v !== null && v !== undefined && !Number.isNaN(v));
+  if (clean.length < 2) return null;
+
+  const min = Math.min(...clean);
+  const max = Math.max(...clean);
+  const range = max - min || 1; // avoid a divide-by-zero when the value has been perfectly flat
+  const pad = strokeWidth;
+
+  const points = clean.map((v, i) => {
+    const x = clean.length === 1 ? 0 : (i / (clean.length - 1)) * width;
+    const y = height - pad - ((v - min) / range) * (height - pad * 2);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+
+  const area = showArea
+    ? `<polygon points="0,${height} ${points.join(' ')} ${width},${height}" fill="currentColor" opacity="0.12" />`
+    : '';
+  const line = `<polyline points="${points.join(' ')}" fill="none" stroke="currentColor" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round" />`;
+
+  return `<svg viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" preserveAspectRatio="none">${area}${line}</svg>`;
+}
+
+// A small CPU-trend sparkline for a card/row -- only CPU, not all four
+// metrics, since there isn't room to show more than one trend line at
+// a glance here (the History tab covers all four in full). Returns ''
+// (nothing rendered) if the feature/toggle is off or there's not yet
+// enough history for this device to draw a line.
+function sparklineHtml(deviceId) {
+  if (!statsHistoryConfig.enabled || !statsHistoryConfig.sparklineEnabled) return '';
+  const samples = historyCache[deviceId];
+  if (!samples || samples.length < 2) return '';
+  const svg = buildLineChartSvg(samples.map((s) => s.cpu), { width: 80, height: 22, strokeWidth: 1.5 });
+  return svg ? `<div class="card-sparkline" title="CPU trend">${svg}</div>` : '';
+}
+
+// Refreshes the client-side cache used by sparklineHtml() above, then
+// re-renders so any newly-available sparklines actually show up (the
+// very first render happens before this data exists yet). Only bothers
+// fetching per-device history at all when the feature and the sparkline
+// toggle are both on -- otherwise this is a no-op.
+async function refreshHistoryCache() {
+  await loadStatsHistoryConfig(); // ensures we're checking current config, not whatever this module started with
+  if (!statsHistoryConfig.enabled || !statsHistoryConfig.sparklineEnabled || !devices.length) return;
+  try {
+    const results = await Promise.all(devices.map((d) => fetch(`/api/stats-history/${d.id}`).then((r) => r.json())));
+    devices.forEach((d, i) => (historyCache[d.id] = results[i]));
+    render();
+  } catch (err) {
+    console.error('Could not refresh stats-history cache for sparklines:', err);
+  }
+}
+
+const HISTORY_METRICS = [
+  { key: 'cpu', label: 'CPU', unit: '%', color: 'var(--accent)' },
+  { key: 'mem', label: 'Memory', unit: '%', color: '#a78bfa' },
+  { key: 'disk', label: 'Disk', unit: '%', color: '#f0b429' },
+  { key: 'temp', label: 'Temperature', unit: '', color: '#f87171' },
+];
+
+async function loadDeviceHistory(deviceId) {
+  const container = $('#historyContent');
+  container.innerHTML = '<p class="muted">Loading&hellip;</p>';
+
+  if (!statsHistoryConfig.enabled) {
+    container.innerHTML = '<p class="muted">Stats history is off. Turn it on in Settings \u2192 General to start recording a history for this device.</p>';
+    return;
+  }
+
+  let samples;
+  try {
+    samples = await (await fetch(`/api/stats-history/${deviceId}`)).json();
+  } catch {
+    container.innerHTML = '<p class="muted">Could not load history.</p>';
+    return;
+  }
+
+  if (!samples.length) {
+    container.innerHTML = '<p class="muted">No history recorded yet for this device \u2014 samples are taken every 5 minutes, so check back shortly.</p>';
+    return;
+  }
+
+  const tempUnit = settings.tempUnit === 'F' ? '\u00b0F' : '\u00b0C';
+  container.innerHTML = HISTORY_METRICS.map(({ key, label, unit, color }) => {
+    const values = samples.map((s) => (key === 'temp' && s[key] !== null && settings.tempUnit === 'F' ? s[key] * 9/5 + 32 : s[key]));
+    const clean = values.filter((v) => v !== null && v !== undefined);
+    const svg = buildLineChartSvg(values, { width: 600, height: 60, strokeWidth: 1.75, showArea: true });
+    const unitLabel = key === 'temp' ? tempUnit : unit;
+
+    if (!clean.length) {
+      return `<div class="history-metric"><div class="history-metric-label">${label}</div><p class="muted" style="font-size:12px;">No data</p></div>`;
+    }
+
+    const current = clean[clean.length - 1];
+    const min = Math.min(...clean);
+    const max = Math.max(...clean);
+    return `
+      <div class="history-metric" style="color: ${color};">
+        <div class="history-metric-label">
+          <span>${label}</span>
+          <span class="history-metric-values">now ${current.toFixed(1)}${unitLabel} &middot; min ${min.toFixed(1)}${unitLabel} &middot; max ${max.toFixed(1)}${unitLabel}</span>
+        </div>
+        <div class="history-chart">${svg || '<p class="muted" style="font-size:12px;">Not enough data yet for a chart</p>'}</div>
+      </div>`;
+  }).join('');
+}
+
+
 // ---------------------------------------------------------------- alerts
 let alertConfig = null;
 
@@ -1047,6 +1216,7 @@ async function loadDevices() {
   devices.forEach((d) => (statsCache[d.id] = d.stats));
   populateGroupFilter();
   render();
+  refreshHistoryCache(); // fire-and-forget: re-renders itself once sparkline data is in, no need to block on it here
 }
 
 function populateGroupFilter() {
@@ -1237,7 +1407,7 @@ function renderListView(container, list) {
     <thead>
       <tr>
         <th></th><th></th><th>Name</th><th>Host</th><th>CPU</th><th>Mem</th><th>Disk</th>
-        <th>Temp</th><th>Uptime</th><th>OS</th><th>Hardware</th><th>Svc</th><th></th>
+        <th>Temp</th><th>Trend</th><th>Uptime</th><th>OS</th><th>Hardware</th><th>Svc</th><th></th>
       </tr>
     </thead>
     <tbody></tbody>
@@ -1260,6 +1430,7 @@ function renderListView(container, list) {
       <td>${online && stats.memory ? stats.memory.usedPct + '%' : '--'}</td>
       <td>${online && stats.disk ? stats.disk.usedPct + '%' : '--'}</td>
       <td>${online ? formatTemp(stats.tempC) : '--'}</td>
+      <td>${online ? sparklineHtml(device.id) : ''}</td>
       <td class="truncate-cell" title="${escapeHtml(stats.uptime || '')}">${escapeHtml(online ? stats.uptime || '--' : '--')}</td>
       <td class="truncate-cell" title="${escapeHtml(stats.os || '')}">${escapeHtml(online ? stats.os || '--' : '--')}</td>
       <td class="truncate-cell" title="${escapeHtml(stats.model || '')}">${escapeHtml(online ? stats.model || '--' : '--')}</td>
@@ -1307,6 +1478,7 @@ function renderCard(device) {
         ${meterRow('MEM', stats.memory?.usedPct ?? null, stats.memory ? stats.memory.usedPct + '%' : '--')}
         ${meterRow('DSK', stats.disk?.usedPct ?? null, stats.disk ? stats.disk.usedPct + '%' : '--')}
       </div>
+      ${sparklineHtml(device.id)}
       <div class="card-meta">
         <div class="meta-row"><span>Uptime</span><span title="${escapeHtml(stats.uptime || '')}">${escapeHtml(stats.uptime || '--')}</span></div>
         <div class="meta-row"><span>OS</span><span title="${escapeHtml(stats.os || '')}">${escapeHtml(stats.os || '--')}</span></div>
@@ -1703,8 +1875,10 @@ function switchTab(name) {
   $('#tabServices').hidden = name !== 'services';
   $('#tabPorts').hidden = name !== 'ports';
   $('#tabActions').hidden = name !== 'actions';
+  $('#tabHistory').hidden = name !== 'history';
   $('#tabDanger').hidden = name !== 'danger';
   if (name === 'ports' && activeDeviceId) loadPorts(activeDeviceId);
+  if (name === 'history' && activeDeviceId) loadDeviceHistory(activeDeviceId);
 }
 document.querySelectorAll('.tab-btn').forEach((b) => b.addEventListener('click', () => switchTab(b.dataset.tab)));
 
@@ -2090,3 +2264,4 @@ loadAlertConfig();
 loadCustomCommands();
 loadDevices();
 connectStatsSocket();
+setInterval(refreshHistoryCache, 5 * 60 * 1000); // matches the backend's sampling interval -- no point checking more often than new data could exist

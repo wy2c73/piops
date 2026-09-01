@@ -1,5 +1,36 @@
 # Changelog
 
+## 1.23.0
+
+- **Stats history**, off by default. Records a CPU/memory/disk/
+  temperature sample every 5 minutes per device (downsampled from the
+  15s poll interval on purpose -- on a Raspberry Pi, extra writes mean
+  extra SD card wear, so this stays off unless you turn it on), with
+  configurable retention (24 hours / 7 days / 30 days). Shows up two
+  places, both configurable independently in Settings -> General:
+  - A new **History** tab on each device, with a chart per metric
+    (current/min/max shown alongside each).
+  - An optional small CPU-trend **sparkline** right on the card/row,
+    with its own separate on/off toggle.
+  Charts are hand-rolled inline SVG, not a charting library -- the
+  data (one line, evenly spaced points) is simple enough that this
+  project's own stated bar for "write it directly instead of adding a
+  dependency" (see CONTRIBUTING.md) clearly applies.
+  18 new tests across three files (storage/sampling/retention, the
+  routes, and the SVG chart-building math itself -- extracted directly
+  from app.js, not a copy, so it can't silently drift), 134 total
+  passing. Proved the retention pruning actually matters by breaking
+  it and watching a test fail, then restoring it.
+  Caught and fixed two real bugs in my own test-extraction tooling
+  along the way (not app bugs): a brace-counting helper, used to pull
+  a function's source directly out of app.js for testing, mistook a
+  destructured parameter's own `{...}` for the function body and
+  silently truncated the extraction. Fixed in both places it existed,
+  proactively fixed a third that wasn't yet affected but used the same
+  fragile logic. Also verified the full pipeline end to end against a
+  real running server with realistic seeded data, after an actual SSH
+  server wasn't available to test against in this environment.
+
 ## 1.22.0
 
 - **CI: a GitHub Actions workflow now runs the test suite** on every

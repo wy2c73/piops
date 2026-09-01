@@ -3,6 +3,7 @@ const router = express.Router();
 const store = require('../lib/store');
 const poller = require('../poller');
 const { testConnection, listServices, listPorts, runCommand } = require('../lib/ssh');
+const statsHistory = require('../lib/statsHistory');
 
 const SERVICE_NAME_PATTERN = /^[a-zA-Z0-9@._-]+\.service$/;
 const SERVICE_ACTIONS = new Set(['start', 'stop', 'restart']);
@@ -40,6 +41,7 @@ router.put('/:id', (req, res) => {
 router.delete('/:id', (req, res) => {
   const ok = store.remove(req.params.id);
   if (!ok) return res.status(404).json({ error: 'Device not found' });
+  statsHistory.deleteHistory(req.params.id);
   res.status(204).end();
 });
 

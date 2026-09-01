@@ -125,6 +125,38 @@
           </div>
           <p class="form-note">PuTTY needs a one-time protocol registration on Windows &mdash; see "Windows integration" in the README for a ready-made script. WinSCP registers its own link handler automatically when installed with default options.</p>
         </div>
+
+        <hr class="modal-divider" />
+
+        <div class="form-row">
+          <label>Stats history</label>
+          <p class="form-note">Records a CPU/memory/disk/temperature sample every 5 minutes per device, for a history chart on each device and (optionally) a small trend line right on its card. Off by default &mdash; on a Raspberry Pi, extra writes mean extra SD card wear, so this only turns on if you want it.</p>
+          <div class="segmented" id="statsHistoryEnabledSegmented">
+            <button type="button" class="segmented-opt" data-value="on">On</button>
+            <button type="button" class="segmented-opt" data-value="off">Off</button>
+          </div>
+        </div>
+        <div class="form-row two-col">
+          <div>
+            <label>Keep for</label>
+            <div class="segmented" id="statsHistoryRetentionSegmented">
+              <button type="button" class="segmented-opt" data-value="1">24 hours</button>
+              <button type="button" class="segmented-opt" data-value="7">7 days</button>
+              <button type="button" class="segmented-opt" data-value="30">30 days</button>
+            </div>
+          </div>
+          <div>
+            <label>Sparkline on cards/rows</label>
+            <div class="segmented" id="statsHistorySparklineSegmented">
+              <button type="button" class="segmented-opt" data-value="on">On</button>
+              <button type="button" class="segmented-opt" data-value="off">Off</button>
+            </div>
+          </div>
+        </div>
+        <div class="form-actions">
+          <span class="test-result" id="statsHistoryConfigResult"></span>
+          <button type="button" class="btn btn-primary" id="statsHistorySaveBtn">Save</button>
+        </div>
       </div>
 
       <div class="tab-panel" id="settingsPanelDevices" hidden>
@@ -504,6 +536,7 @@
         <button class="tab-btn active" data-tab="services">Services</button>
         <button class="tab-btn" data-tab="ports">Ports</button>
         <button class="tab-btn" data-tab="actions">Actions</button>
+        <button class="tab-btn" data-tab="history">History</button>
         <button class="tab-btn" data-tab="danger">Manage</button>
       </div>
       <div class="tab-panel" id="tabServices">
@@ -542,6 +575,10 @@
           <pre id="actionsOutputBody"></pre>
         </div>
       </div>
+      <div class="tab-panel" id="tabHistory" hidden>
+        <div id="historyContent"></div>
+      </div>
+
       <div class="tab-panel" id="tabDanger" hidden>
         <p class="muted">Editing pulls the existing device into the Add/Edit form. Removing a device stops monitoring it and deletes its stored credential from this dashboard &mdash; it does not touch the Pi itself.</p>
         <div class="form-actions">

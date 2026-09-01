@@ -22,6 +22,7 @@ const commandsRouter = require('./routes/commands');
 const scanRouter = require('./routes/scan');
 const settingsRouter = require('./routes/settings');
 const apiTokensRouter = require('./routes/apiTokens');
+const statsHistoryRouter = require('./routes/statsHistory');
 const apiV1Router = require('./routes/apiV1');
 const authRouter = require('./routes/auth');
 const auth = require('./lib/auth');
@@ -62,6 +63,7 @@ app.use('/api/commands', commandsRouter);
 app.use('/api/scan', scanRouter);
 app.use('/api/settings', settingsRouter);
 app.use('/api/tokens', apiTokensRouter);
+app.use('/api/stats-history', statsHistoryRouter);
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 app.get('/api/version', (req, res) => res.json({ version: require('./package.json').version }));
 app.get('/api/version/check', async (req, res) => {
