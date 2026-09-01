@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.20.3
+
+- Documented where automatic backups actually live on disk -- until
+  now this only existed in the in-app UI text, a code comment, and the
+  v1.19.0 changelog entry, not in any doc someone would actually find
+  while reading the repo. DOCKER.md's "Persistent data" section now
+  mentions `data/auto-backups/` alongside the device registry and
+  encryption key it already covered, with the exact host-path
+  implication for a typical `./data:/app/backend/data` mount.
+  INSTALL.md's equivalent "Upgrading later" section gets the same
+  addition for a native install (`backend/data/auto-backups/`). Both
+  repeat the same disaster-recovery caveat already in the UI: these
+  share a disk with everything else, so they're not a substitute for
+  a manual, off-device export.
+
 ## 1.20.2
 
 - The version badge in the top-left of the topbar is now a link to the

@@ -98,6 +98,17 @@ Export backup) unless you intend to start fresh -- losing `.key` while
 keeping `devices.json` makes every stored credential permanently
 undecryptable (see the Troubleshooting section in the main README).
 
+This same folder also holds **automatic backups** (Settings &rarr; Backup
+&rarr; Automatic backups, on by default) -- they land in `data/auto-backups/`
+on whatever host path you've mounted `./data` to (so if your
+`docker-compose.yml` uses `./data:/app/backend/data`, that's
+`auto-backups/` right next to `devices.json` and `.key`). Worth
+understanding plainly: because these live in the *same* mounted folder as
+everything else, they protect against an accidental bulk delete or a bad
+edit, not against that folder's underlying disk failing -- for real
+disaster recovery, still periodically take a manual export (Settings
+&rarr; Backup &rarr; Export backup) and store it somewhere else entirely.
+
 ## Updating
 
 ### Manual (always available, no setup required)

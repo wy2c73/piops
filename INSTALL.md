@@ -180,6 +180,14 @@ overwrite the `data/` directory. Back that directory up before major
 upgrades regardless &mdash; or use Settings &rarr; Export backup, which is the
 portable, passphrase-protected way to do it.
 
+This same `data/` directory also holds **automatic backups** (Settings
+&rarr; Backup &rarr; Automatic backups, on by default), landing in
+`backend/data/auto-backups/`. Because they live in the same directory as
+everything else, they're a safety net against an accidental bulk delete
+or a bad edit, not against that disk failing outright -- for real
+disaster recovery, still periodically take a manual export (Settings
+&rarr; Backup &rarr; Export backup) and store it somewhere else entirely.
+
 To get a small "update available" badge in the dashboard's top bar when a
 newer version exists on your GitHub repo: if you used `install.sh`
 against a plain `github.com` URL, this is already configured for you
