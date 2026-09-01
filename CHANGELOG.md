@@ -1,5 +1,36 @@
 # Changelog
 
+## 1.21.0
+
+- **Login rate limiting.** 5 failed attempts locks that IP out for 15
+  minutes -- previously nothing stood between the password gate and a
+  script trying passwords as fast as the network allowed. Hand-rolled
+  (`lib/loginRateLimit.js`), no new dependency, matching how
+  auth/sessions are already implemented directly rather than pulled
+  from npm. In-memory, not persisted -- resets on restart, a
+  reasonable trade-off for a home dashboard. Locks out the *correct*
+  password too while an IP is locked out (checked before verifying
+  credentials at all), since otherwise the limiter would be trivially
+  bypassed by anyone who actually knows the password -- a real login
+  briefly sharing that cost is an accepted, standard trade-off for
+  this kind of lockout. A successful login resets the count.
+  Documented the one real caveat directly in the README: this keys on
+  the direct TCP peer address, so running behind a reverse proxy
+  without Express's "trust proxy" configured means everyone behind it
+  shares one bucket.
+  10 new tests (7 unit against the limiter directly with mock
+  requests, 3 HTTP-level against the real login route), including
+  genuine time-based verification (actually waiting out a shortened
+  test window/lockout rather than just asserting on logic) and proof
+  the tests catch a real regression: removed the rate-limit check,
+  confirmed the relevant test failed, restored it.
+- **`CONTRIBUTING.md`**, now that the repo is public: setup, running
+  tests, the project's actual conventions (minimal dependencies,
+  agentless as a hard constraint, comments explain *why*, backward
+  compatibility on renames), what a good PR looks like, and where to
+  report a security issue privately rather than in a public issue.
+  Linked from the README.
+
 ## 1.20.3
 
 - Documented where automatic backups actually live on disk -- until

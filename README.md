@@ -76,7 +76,7 @@ than just a viewer.
 - **Docker support** — run it as a container instead of a native Node process; see [DOCKER.md](DOCKER.md), including specific steps for a Synology NAS
 - **Update notifications** — an optional badge in the top bar when a newer version exists on your GitHub repo (informational only; see "Updating" in DOCKER.md or INSTALL.md)
 - **Network scanning** — sweep your local subnet for hosts with SSH open and bulk-add whichever you select, using one shared username/credential for the batch
-- **Optional password gate** — Settings → Security lets you put a single shared password in front of the whole dashboard; off by default
+- **Optional password gate** — Settings → Security lets you put a single shared password in front of the whole dashboard; off by default. Rate-limited (5 failed attempts locks an IP out for 15 minutes) so it isn't trivially scriptable
 - **Mobile-friendly** — checking your fleet from a phone works: wrapping toolbars, scrollable tables instead of squished columns, and near-fullscreen modals on narrow screens
 - **One-line installer** — `install.sh` handles Node.js, cloning, the dedicated system user, and the systemd service in one command; safe to re-run later as an update. `uninstall.sh` reverses it just as easily, with a confirmation prompt first
 - **Light/dark theme** — Settings → General; defaults to dark
@@ -417,6 +417,12 @@ timeout error if it ran past the limit you set).
   reverse proxy in front of this yourself &mdash; it isn't marked `Secure`, since
   that would silently break login for the common case of running this over plain
   HTTP on a LAN. Treat it accordingly if you do expose this beyond a trusted network.
+- Login attempts are rate-limited per IP address (5 failures locks that IP out
+  for 15 minutes, in memory, reset by a restart) &mdash; a basic guard against
+  scripted password guessing, not a complete one. It keys on the direct TCP
+  peer address unless you've configured Express's "trust proxy" setting, so if
+  you run this behind a reverse proxy without that set, every request appears
+  to come from the proxy's own address and everyone behind it shares one bucket.
 
 ## Setting up the password gate
 
@@ -460,6 +466,11 @@ fixes, for instance) -- those still need the kind of manual,
 real-environment testing used throughout this project's development.
 Tests use an isolated temp data directory (`PIOPS_DATA_DIR`), so running
 them never touches your real device registry.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) -- setup, running tests, and
+what a good PR looks like.
 
 ## What's next
 

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../lib/auth');
+const rateLimit = require('../lib/loginRateLimit');
 
 router.get('/status', (req, res) => {
   const config = auth.loadAuthConfig();
@@ -10,10 +11,22 @@ router.get('/status', (req, res) => {
 router.post('/login', (req, res) => {
   const config = auth.loadAuthConfig();
   if (!config.enabled) return res.json({ ok: true }); // nothing to log into
+
+  const limit = rateLimit.checkRateLimit(req);
+  if (!limit.allowed) {
+    const retryAfterSec = Math.ceil(limit.retryAfterMs / 1000);
+    res.setHeader('Retry-After', retryAfterSec);
+    return res.status(429).json({
+      error: `Too many failed attempts. Try again in ${Math.ceil(retryAfterSec / 60)} minute${retryAfterSec > 60 ? 's' : ''}.`,
+    });
+  }
+
   const { password } = req.body || {};
   if (!auth.verifyPassword(password, config)) {
+    rateLimit.recordFailure(req);
     return res.status(401).json({ error: 'Incorrect password' });
   }
+  rateLimit.recordSuccess(req);
   res.setHeader('Set-Cookie', auth.sessionCookieHeader(auth.createSessionToken()));
   res.json({ ok: true });
 });
