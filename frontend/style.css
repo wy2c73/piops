@@ -91,7 +91,9 @@ button { font-family: inherit; }
   border: 1px solid var(--border);
   border-radius: 3px;
   padding: 1px 5px;
+  text-decoration: none;
 }
+.brand-version:hover { color: var(--text); border-color: var(--text-muted); }
 
 .update-badge {
   font-family: var(--mono);

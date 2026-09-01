@@ -7,7 +7,7 @@ services:
     ports:
       # Host port : container port. Change the first number if 3000 is
       # already in use on your NAS/host (e.g. "8088:3000").
-      - "8088:8088"
+      - "3000:3000"
     volumes:
       # Persists the device registry, encryption key, groups, alert
       # config, and custom commands across container restarts/rebuilds.
@@ -16,7 +16,7 @@ services:
       # project folder there -- see DOCKER.md.
       - ./data:/app/backend/data
     environment:
-      - PORT=8088
+      - PORT=3000
       - HOST=0.0.0.0
       # - GITHUB_REPO=wy2c73/piops  # enables the "update available" badge
       # - POLL_INTERVAL_MS=15000

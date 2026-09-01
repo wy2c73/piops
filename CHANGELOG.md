@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.20.2
+
+- The version badge in the top-left of the topbar is now a link to the
+  GitHub repo (opens in a new tab). Purely a markup/CSS change --
+  `<span>` swapped for `<a>`, same styling otherwise, no JS changes
+  needed since the version text is still just set via `.textContent`.
+
 ## 1.20.1
 
 - **Added a favicon.** Wasn't Docker-specific -- there was no favicon at
