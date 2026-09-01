@@ -52,6 +52,14 @@ cd backend
 npm test
 ```
 
+Needs **Node 22.22.2 or newer** to run -- not because PiOps itself
+needs it (the app runs fine on Node 18+, see the Dockerfile), but
+because `jsdom` (a dev-only dependency, a couple of the settings-sync
+and chart-building tests use it) requires it, and fails with a real
+crash rather than just a warning on anything older. If `npm test`
+dies immediately with an error inside `node_modules/undici`, this is
+almost certainly why -- check `node --version` first.
+
 See the "Running tests" section of the main README for what the suite
 covers and, just as importantly, what it deliberately doesn't (real
 SSH, real browser rendering).

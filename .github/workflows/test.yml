@@ -29,7 +29,13 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          # jsdom (a dev-only test dependency, see backend/package.json)
+          # requires Node ^22.22.2 || ^24.15.0 || >=26.0.0 -- Node 20
+          # fails hard here with a real crash inside jsdom's undici
+          # dependency, not just an engine warning. This doesn't affect
+          # what Node version PiOps itself runs on in production (see
+          # the Dockerfile) -- only what's needed to run the test suite.
+          node-version: '22'
           cache: 'npm'
           cache-dependency-path: backend/package-lock.json
 

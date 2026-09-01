@@ -451,7 +451,9 @@ npm test
 Uses Node's built-in test runner, plus `jsdom` (a dev-only dependency --
 never installed in production; `npm install --omit=dev`, what
 `install.sh`/Docker actually use, skips it) for a couple of tests that
-need a real browser-like environment. Covers the backend API end-to-end
+need a real browser-like environment. **Running the suite needs Node
+22.22.2+** because of that `jsdom` dependency specifically -- PiOps
+itself still only needs Node 18+ to run. Covers the backend API end-to-end
 against the real Express app (devices, groups, alerts, backup export/
 import including the legacy pre-rename format, automatic backups, the
 settings-sync API, and the auth/session gate), the settings-sync/

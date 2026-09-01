@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.23.1
+
+- **Fixed the CI test workflow, which was actually failing on GitHub.**
+  `.github/workflows/test.yml` specified Node 20; `jsdom` (a dev-only
+  test dependency) requires Node `^22.22.2 || ^24.15.0 || >=26.0.0` and
+  crashes hard on anything older (`TypeError:
+  webidl.util.markAsUncloneable is not a function`, inside jsdom's
+  `undici` dependency) rather than just warning. Bumped CI to Node 22.
+  This didn't affect the app itself (PiOps still only needs Node 18+
+  to run -- see the Dockerfile) or local testing in the one
+  environment this was actually developed and verified in (already
+  Node 22.22.2, which is exactly why this passed every local check
+  before being pushed). Node's test runner isolates each test file, so
+  only the one jsdom-dependent file actually failed -- the other 129
+  tests ran and passed regardless, which is itself confirmation the
+  diagnosis was narrow and correct rather than something broader.
+  Also documented the Node 22.22.2+ requirement for *running the test
+  suite* specifically (distinct from running PiOps itself) in both
+  CONTRIBUTING.md and the README, so a contributor on an older Node
+  hits a clear explanation instead of the same confusing crash.
+
 ## 1.23.0
 
 - **Stats history**, off by default. Records a CPU/memory/disk/
