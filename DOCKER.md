@@ -92,7 +92,8 @@ sudo docker compose up -d --build
 
 Everything that needs to survive a container rebuild lives in the `data/`
 folder mounted at `/app/backend/data` -- the device registry, the
-encryption key, curated groups, alert configuration, and custom commands.
+encryption key, curated groups, alert configuration, custom commands,
+and any API tokens you've generated (Settings &rarr; Security).
 **Never delete or recreate this folder without a backup** (Settings &rarr;
 Export backup) unless you intend to start fresh -- losing `.key` while
 keeping `devices.json` makes every stored credential permanently

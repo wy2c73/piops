@@ -360,6 +360,94 @@ $('#authSaveBtn').addEventListener('click', async () => {
   }
 });
 
+// ---------------------------------------------------------------- API tokens
+function formatTokenDate(iso) {
+  return iso ? new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : 'never';
+}
+
+async function loadApiTokens() {
+  try {
+    const res = await fetch('/api/tokens');
+    renderApiTokenList(await res.json());
+  } catch (err) {
+    console.error('Could not load API tokens:', err);
+  }
+}
+
+function renderApiTokenList(tokens) {
+  const listEl = $('#apiTokenList');
+  if (!tokens.length) {
+    listEl.innerHTML = '<p class="muted" style="padding: 10px 12px;">No API tokens yet.</p>';
+    return;
+  }
+  listEl.innerHTML = tokens
+    .map(
+      (t) => `
+    <div class="api-token-row">
+      <div>
+        <div>${escapeHtml(t.label)}</div>
+        <div class="api-token-meta">Created ${escapeHtml(formatTokenDate(t.createdAt))} &middot; Last used ${escapeHtml(formatTokenDate(t.lastUsedAt))}</div>
+      </div>
+      <button type="button" class="btn btn-ghost btn-sm api-token-revoke-btn" data-id="${escapeHtml(t.id)}" data-label="${escapeHtml(t.label)}">Revoke</button>
+    </div>`
+    )
+    .join('');
+}
+
+$('#createTokenBtn').addEventListener('click', async () => {
+  const labelInput = $('#newTokenLabel');
+  const label = labelInput.value.trim();
+  if (!label) {
+    labelInput.focus();
+    return;
+  }
+  try {
+    const res = await fetch('/api/tokens', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ label }),
+    });
+    const body = await res.json();
+    if (!res.ok) throw new Error(body.error || 'Could not create token');
+
+    $('#tokenRevealValue').value = body.token;
+    $('#tokenRevealBox').hidden = false;
+    labelInput.value = '';
+    await loadApiTokens();
+  } catch (err) {
+    alert(err.message);
+  }
+});
+
+$('#copyTokenBtn').addEventListener('click', async () => {
+  const input = $('#tokenRevealValue');
+  input.select();
+  try {
+    await navigator.clipboard.writeText(input.value);
+    const btn = $('#copyTokenBtn');
+    const original = btn.textContent;
+    btn.textContent = 'Copied';
+    setTimeout(() => (btn.textContent = original), 1500);
+  } catch {
+    // Clipboard API unavailable (e.g. non-HTTPS context) -- the input is
+    // already selected above, so a manual Ctrl/Cmd+C still works.
+  }
+});
+
+$('#apiTokenList').addEventListener('click', async (e) => {
+  const btn = e.target.closest('.api-token-revoke-btn');
+  if (!btn) return;
+  if (!confirm(`Revoke the "${btn.dataset.label}" token? Anything using it will stop working immediately.`)) return;
+
+  try {
+    const res = await fetch(`/api/tokens/${btn.dataset.id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error((await res.json()).error || 'Could not revoke token');
+    await loadApiTokens();
+  } catch (err) {
+    alert(err.message);
+  }
+});
+
 $('#logoutBtn').addEventListener('click', async () => {
   await fetch('/api/auth/logout', { method: 'POST' });
   window.location.href = '/login.html';

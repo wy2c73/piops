@@ -21,6 +21,8 @@ const alertsRouter = require('./routes/alerts');
 const commandsRouter = require('./routes/commands');
 const scanRouter = require('./routes/scan');
 const settingsRouter = require('./routes/settings');
+const apiTokensRouter = require('./routes/apiTokens');
+const apiV1Router = require('./routes/apiV1');
 const authRouter = require('./routes/auth');
 const auth = require('./lib/auth');
 const { checkForUpdate } = require('./lib/updateCheck');
@@ -43,6 +45,7 @@ app.use(express.json({ limit: '5mb' }));
 const PUBLIC_PATHS = new Set(['/login.html', '/style.css', '/api/health', '/api/version']);
 
 app.use('/api/auth', authRouter);
+app.use('/api/v1', apiV1Router); // own token-based auth (see requireToken in routes/apiV1.js) -- bypasses the session gate below entirely, same reason /api/auth does
 app.use((req, res, next) => {
   if (PUBLIC_PATHS.has(req.path) || auth.isAuthenticated(req)) return next();
   if (req.path.startsWith('/api/') || req.path.startsWith('/ws/')) {
@@ -58,6 +61,7 @@ app.use('/api/alerts', alertsRouter);
 app.use('/api/commands', commandsRouter);
 app.use('/api/scan', scanRouter);
 app.use('/api/settings', settingsRouter);
+app.use('/api/tokens', apiTokensRouter);
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 app.get('/api/version', (req, res) => res.json({ version: require('./package.json').version }));
 app.get('/api/version/check', async (req, res) => {

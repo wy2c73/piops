@@ -236,6 +236,25 @@
           <span class="test-result" id="authResult"></span>
           <button type="button" class="btn btn-primary" id="authSaveBtn">Save security settings</button>
         </div>
+
+        <hr class="modal-divider" />
+
+        <div class="form-row">
+          <label>API tokens</label>
+          <p class="form-note">Read-only access to device stats for external tools (Home Assistant, Grafana, your own scripts) &mdash; separate from the dashboard password above, and can't take any action or see credentials. See <a href="https://github.com/wy2c73/piops/blob/main/API.md" target="_blank" rel="noopener">API.md</a> for endpoints and examples.</p>
+          <div class="api-token-create-row">
+            <input id="newTokenLabel" type="text" placeholder="Label, e.g. Home Assistant" maxlength="60" />
+            <button type="button" class="btn btn-ghost" id="createTokenBtn">Create token</button>
+          </div>
+          <div class="api-token-reveal" id="tokenRevealBox" hidden>
+            <p class="form-note"><strong>Copy this now &mdash; it won't be shown again.</strong> If you lose it, revoke it and create a new one.</p>
+            <div class="password-field">
+              <input id="tokenRevealValue" type="text" readonly />
+              <button type="button" class="btn btn-ghost btn-sm" id="copyTokenBtn">Copy</button>
+            </div>
+          </div>
+        </div>
+        <div class="api-token-list" id="apiTokenList"></div>
       </div>
 
       <div class="tab-panel" id="settingsPanelCommands" hidden>

@@ -82,6 +82,7 @@ than just a viewer.
 - **Light/dark theme** — Settings → General; defaults to dark
 - **Automatic backups** — periodic server-side snapshots (Settings → Backup), encrypted with this install's own key, no passphrase to manage; on by default. A safety net against an accidental bulk delete, not a substitute for the manual export
 - **Settings sync** — theme, units, view mode, local terminal app choice, and card order are stored on the server and shared across every browser/device that opens the dashboard, not stuck per-browser in localStorage. Migrates an existing browser's settings up automatically the first time it connects after updating, so nothing gets reset
+- **Read-only API tokens** — Settings → Security lets you generate tokens for external tools (Home Assistant, Grafana, your own scripts) to pull device stats. See [API.md](API.md). Separate from the dashboard password, works even when it's off, and can't take any action or see credentials
 - **In-browser SSH terminal** — click "Terminal" on any card for a real xterm.js session proxied over SSH
 - **"Open in local terminal"** — hands off to your system's default `ssh://` handler, or launch PuTTY / WinSCP directly (pick one in Settings; see "Windows integration" below)
 - **Settings** — Metric/Imperial and °C/°F display preference, view mode, local terminal app, saved per-browser
@@ -466,6 +467,13 @@ fixes, for instance) -- those still need the kind of manual,
 real-environment testing used throughout this project's development.
 Tests use an isolated temp data directory (`PIOPS_DATA_DIR`), so running
 them never touches your real device registry.
+
+## Read API
+
+For pulling device stats into Home Assistant, Grafana, or your own
+scripts: see [API.md](API.md). Token-authenticated (separate from the
+dashboard password, generated in Settings &rarr; Security), read-only, and
+works independently of the password gate.
 
 ## Contributing
 

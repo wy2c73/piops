@@ -458,6 +458,19 @@ textarea { resize: vertical; font-family: var(--mono); }
 .auto-backup-size { color: var(--text-dim); font-size: 11px; }
 .auto-backup-row .btn { margin-left: auto; flex-shrink: 0; }
 
+.api-token-create-row { display: flex; gap: 8px; margin-top: 8px; }
+.api-token-create-row input { flex: 1; }
+.api-token-reveal { margin-top: 10px; padding: 10px 12px; border: 1px solid var(--accent); border-radius: var(--radius); }
+.api-token-reveal input { font-family: var(--mono); font-size: 12px; }
+.api-token-list { max-height: 200px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius); margin-top: 10px; }
+.api-token-row {
+  display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+  border-bottom: 1px solid var(--border); font-size: 12.5px;
+}
+.api-token-row:last-child { border-bottom: none; }
+.api-token-meta { color: var(--text-dim); font-size: 11px; }
+.api-token-row .btn { margin-left: auto; flex-shrink: 0; }
+
 .scan-results-list { max-height: 240px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius); margin-top: 8px; }
 .scan-result-row {
   display: flex; align-items: center; gap: 10px; padding: 8px 12px;

@@ -1,5 +1,54 @@
 # Changelog
 
+## 1.22.0
+
+- **CI: a GitHub Actions workflow now runs the test suite** on every
+  push and PR against main (`.github/workflows/test.yml`), matching
+  the existing `docker-publish.yml`'s conventions. Previously the 110
+  tests only ran when I ran them by hand before a release -- this
+  catches a regression the moment it lands on `main`, including from
+  an edit made directly on GitHub's web UI rather than the usual
+  local-clone workflow.
+- **Closed the last two real test-coverage gaps**: `lib/alertEngine.js`
+  (16 new tests total across both files) -- the transition-detection
+  logic (fires only on an actual state *change*, not every poll while
+  a condition persists), per-device threshold overrides, and the
+  under-voltage/throttling/CPU/memory/disk/temp checks -- and
+  `lib/alertNotifier.js` -- the exact payload shape sent to Discord,
+  Slack, ntfy, and the generic format, using a mocked `fetch`. Proved
+  both matter: broke the transition-only logic and the Discord
+  formatting, one at a time, confirmed each corresponding test failed,
+  restored both.
+- **A documented, token-authenticated read API** (see `API.md`) for
+  pulling device stats into Home Assistant, Grafana, or your own
+  scripts -- `GET /api/v1/devices`, `/devices/:id`, `/summary`.
+  Deliberately separate from the dashboard's own session/password
+  system: tokens are generated in Settings -> Security, shown once at
+  creation (only a SHA-256 hash is stored after that, same as the
+  dashboard password's own hashing approach), and work independently
+  of the password gate -- a valid token still works even when that
+  gate is turned on. Read-only by construction: no route in this API
+  can change anything. Built with an explicit field allowlist rather
+  than reusing the internal device shape, specifically so a field
+  added later for the dashboard's own internal use can't silently leak
+  into this external, documented contract just by existing.
+  21 new tests across four files (token generation/storage/revocation,
+  the management routes, and the v1 endpoints themselves), 110 total
+  passing. Specifically proved the most important guarantee -- that a
+  token works independently of the session gate -- by deliberately
+  moving the new router's mount point to *after* the session-gate
+  middleware (the exact mistake that would silently break this) and
+  confirming the test caught it before restoring the correct order.
+  Also did a real end-to-end server boot test (create a token via
+  curl, call the API with it, confirm a request with no token gets a
+  401) rather than trusting the test suite alone.
+  `API.md` documents authentication, all three endpoints with real
+  example responses (captured from an actual running server, then
+  corrected once against the real source when the hand-built
+  `throttled` object example turned out to be missing several real
+  fields), a field reference table, and a Home Assistant REST sensor
+  example. Linked from the README.
+
 ## 1.21.0
 
 - **Login rate limiting.** 5 failed attempts locks that IP out for 15

@@ -1,0 +1,42 @@
+name: Tests
+
+# Runs the backend test suite (backend/test/*.test.js, via `npm test`)
+# on every push and pull request against main -- catches a regression
+# the moment it lands, including from an edit made directly on GitHub's
+# web UI rather than through the usual local-clone workflow.
+#
+# This only runs if you've pushed this repo to your own GitHub and have
+# Actions enabled (Settings -> Actions -> General). Nothing here
+# requires any secrets.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch: {} # lets you trigger a run manually from the Actions tab
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Run tests
+        working-directory: backend
+        run: npm test
