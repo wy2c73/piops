@@ -1,5 +1,29 @@
 # Changelog
 
+## 1.20.1
+
+- **Added a favicon.** Wasn't Docker-specific -- there was no favicon at
+  all, anywhere, in any deployment method; just noticed via Docker.
+  New `frontend/favicon.svg` (primary, theme-aware via a
+  `prefers-color-scheme` media query inside the SVG itself, matching
+  the app's existing light/dark theming), `favicon.ico` (multi-
+  resolution 16/32/48px fallback for browsers without SVG favicon
+  support), and `apple-touch-icon.png` (180px, for iOS home-screen
+  bookmarks). Design echoes the app's own most recognizable visual
+  motif -- the status-LED dot used on every device card. Linked from
+  both index.html and login.html.
+  Actually rendered and visually reviewed the icon at real favicon
+  sizes (not just written blind) before finalizing -- caught a real
+  mistake along the way: the first attempt at building the
+  multi-resolution .ico only embedded one size despite asking Pillow's
+  ICO writer for three (a wrong assumption about `append_images` for
+  this format, not the intended `sizes=` resize-from-source behavior).
+  Confirmed no `.dockerignore`/`.gitignore` pattern excludes the new
+  files, and that Express serves each with the correct MIME type.
+  Couldn't run an actual `docker build` in this environment to verify
+  end to end -- verified the exact copy/ignore mechanics that determine
+  it instead, but a real rebuild is worth confirming on your end too.
+
 ## 1.20.0
 
 - **Settings sync across browsers/devices.** Theme, units, view mode,

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <style>
+    .board { fill: #5eb1ef; }
+    @media (prefers-color-scheme: light) {
+      .board { fill: #1568a8; }
+    }
+  </style>
+  <rect x="4" y="4" width="24" height="24" rx="6" class="board"/>
+  <circle cx="22.5" cy="9.5" r="4.5" fill="#1a1d24"/>
+  <circle cx="22.5" cy="9.5" r="3.2" fill="#3ecf6e"/>
+</svg>
