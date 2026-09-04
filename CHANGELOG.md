@@ -1,5 +1,43 @@
 # Changelog
 
+## 1.24.0
+
+- **Prometheus metrics endpoint** (`GET /metrics`), for anyone already
+  running Prometheus + Grafana -- a more idiomatic fit than routing
+  through a generic JSON datasource plugin against the existing
+  `/api/v1` endpoints. Standard text-exposition format: `piops_device_up`,
+  `piops_cpu_used_percent`, `piops_memory_used_percent`,
+  `piops_disk_used_percent`, `piops_temperature_celsius` (always
+  Celsius, independent of the dashboard's own display unit setting),
+  `piops_services_running`, `piops_undervoltage`/`piops_throttled`
+  (Pi-specific, omitted entirely for hardware that doesn't report
+  them), and a `piops_build_info` gauge for tracking which version
+  produced a given set of metrics. Every metric carries `device_id`,
+  `name`, `host`, `group` labels.
+  Mounted at the conventional root path (`/metrics`, not under
+  `/api/v1`) so Prometheus scrape configs don't need anything unusual.
+  Token-authenticated the same way as the rest of the read API --
+  Prometheus's `scrape_configs` support a bearer token natively, so
+  this didn't need a different auth mechanism just because the
+  consumer is a scraper instead of a browser.
+  Refactored first: extracted the token-check middleware (previously
+  private to `routes/apiV1.js`) into a shared, reusable
+  `apiTokens.requireToken`, confirmed the existing 21 related tests
+  still passed before adding anything new -- now used by both
+  `/api/v1/*` and `/metrics` instead of two copies of the same check.
+  7 new tests, 141 total passing, including the same critical guarantee
+  proven for `/api/v1` before: a valid token works even when the
+  dashboard's own password gate is on. Also specifically verified
+  label-escaping (quotes/backslashes in a device name) and that
+  missing data produces an omitted metric line rather than an invalid
+  `NaN`/`null` value Prometheus would reject -- proved the escaping
+  test actually catches a regression by breaking it and watching it
+  fail, then restoring it. Captured real example output from an actual
+  running instance for the documentation, rather than hand-writing it.
+  `API.md` restructured to cover both surfaces (JSON endpoints and
+  Prometheus metrics) with a real Prometheus `scrape_configs` example
+  and a full metrics reference table. Linked from the README.
+
 ## 1.23.1
 
 - **Fixed the CI test workflow, which was actually failing on GitHub.**

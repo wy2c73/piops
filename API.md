@@ -1,10 +1,18 @@
 # PiOps read API
 
-A read-only HTTP API for pulling device stats into something else --
-Home Assistant, Grafana, a status page, your own script. Authenticated
-with its own tokens, separate from the dashboard password, and
-independent of it: a token works whether or not the password gate
-(Settings &rarr; Security) is turned on.
+Two ways to pull device stats out of PiOps into something else --
+Home Assistant, Grafana, a status page, your own script:
+
+- **[JSON endpoints](#endpoints)** (`/api/v1/*`) -- for anything that
+  wants to query devices directly and work with the response itself.
+- **[Prometheus metrics](#prometheus-metrics)** (`/metrics`) -- if you
+  already run Prometheus, point it here instead and let it handle
+  scraping, storage, and Grafana graphs the way it already does for
+  everything else.
+
+Both are authenticated with their own tokens, separate from the
+dashboard password, and independent of it: a token works whether or
+not the password gate (Settings &rarr; Security) is turned on.
 
 This is a different, smaller surface than the API the dashboard itself
 uses internally. The internal API isn't documented or versioned -- it
@@ -183,6 +191,98 @@ sensor:
 
 Put the actual `Bearer piops_xxxx...` string in `secrets.yaml` under
 `piops_api_token` rather than inline here.
+
+## Prometheus metrics
+
+If you already run Prometheus and Grafana, this is a better fit than
+the JSON endpoints above: point Prometheus directly at PiOps and let
+it scrape, store, and graph device stats the same way it already
+handles everything else, instead of routing through a generic JSON
+datasource plugin.
+
+```
+GET /metrics
+```
+
+Note this is at the root (`/metrics`), not under `/api/v1` -- the
+conventional path every Prometheus exporter uses, so scrape configs
+don't need anything unusual. Same token authentication as the rest of
+this API; Prometheus's `scrape_configs` support a bearer token
+natively:
+
+```yaml
+scrape_configs:
+  - job_name: piops
+    scheme: http
+    bearer_token: piops_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+    static_configs:
+      - targets: ["192.168.1.50:3000"]
+```
+
+(Put the actual token in a separate secrets file and reference it with
+`bearer_token_file` instead, if your Prometheus setup already manages
+secrets that way.)
+
+### Metrics exposed
+
+| Metric | Type | Notes |
+|---|---|---|
+| `piops_device_up` | gauge | 1 if the device was reachable on the most recent poll, 0 otherwise |
+| `piops_cpu_used_percent` | gauge | 0-100 |
+| `piops_memory_used_percent` | gauge | 0-100 |
+| `piops_disk_used_percent` | gauge | 0-100 |
+| `piops_temperature_celsius` | gauge | Always Celsius, regardless of the dashboard's own display unit setting -- convert in Grafana if you want Fahrenheit |
+| `piops_services_running` | gauge | |
+| `piops_undervoltage` | gauge | 1/0 -- only emitted for hardware that reports this (Raspberry Pi); absent entirely for anything else |
+| `piops_throttled` | gauge | 1/0 -- same caveat as above |
+| `piops_build_info` | gauge | Always `1`; the useful part is the `version` label, for tracking which PiOps version produced a given set of metrics |
+
+Every metric except `piops_build_info` carries the same four labels:
+`device_id`, `name`, `host`, `group`. A metric line is omitted
+entirely (not emitted as `NaN` or `null`, which Prometheus would
+reject) for any device/metric combination with no data yet -- a
+device that's never been polled will only show up in
+`piops_device_up`, nothing else.
+
+### Real example output
+
+Captured from an actual running instance (one device, currently
+unreachable, which is why only `piops_device_up` has a data line):
+
+```
+# HELP piops_device_up Whether PiOps most recently reached this device (1) or not (0)
+# TYPE piops_device_up gauge
+piops_device_up{device_id="6bcfd735-68f5-455d-a19f-0cf4a1d7c690",name="Example Pi",host="127.0.0.1",group="Home Lab"} 0
+
+# HELP piops_cpu_used_percent CPU usage percent
+# TYPE piops_cpu_used_percent gauge
+
+# HELP piops_memory_used_percent Memory usage percent
+# TYPE piops_memory_used_percent gauge
+
+# HELP piops_disk_used_percent Disk usage percent
+# TYPE piops_disk_used_percent gauge
+
+# HELP piops_temperature_celsius CPU temperature in Celsius, regardless of the dashboard's display unit preference
+# TYPE piops_temperature_celsius gauge
+
+# HELP piops_services_running Number of running services detected
+# TYPE piops_services_running gauge
+
+# HELP piops_undervoltage Raspberry Pi under-voltage currently detected (1) or not (0) -- absent for hardware that doesn't report this
+# TYPE piops_undervoltage gauge
+
+# HELP piops_throttled Raspberry Pi CPU throttling currently active (1) or not (0) -- absent for hardware that doesn't report this
+# TYPE piops_throttled gauge
+
+# HELP piops_build_info Which PiOps version generated these metrics
+# TYPE piops_build_info gauge
+piops_build_info{version="1.23.1"} 1
+```
+
+For a reachable device, the same shape gets a data line under each
+metric it has a value for -- e.g.
+`piops_cpu_used_percent{device_id="...",name="Living Room Pi",host="192.168.1.104",group="Home Lab"} 12`.
 
 ## Field reference
 

@@ -19,16 +19,7 @@ const store = require('../lib/store');
 const poller = require('../poller');
 const apiTokens = require('../lib/apiTokens');
 
-function requireToken(req, res, next) {
-  const match = (req.headers.authorization || '').match(/^Bearer\s+(.+)$/i);
-  const tokenId = match ? apiTokens.verifyToken(match[1]) : null;
-  if (!tokenId) {
-    return res.status(401).json({ error: 'Missing or invalid API token. See API.md for how to create one in Settings -> Security.' });
-  }
-  next();
-}
-
-router.use(requireToken);
+router.use(apiTokens.requireToken);
 
 function publicDeviceView(device, stats) {
   return {

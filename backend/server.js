@@ -24,6 +24,7 @@ const settingsRouter = require('./routes/settings');
 const apiTokensRouter = require('./routes/apiTokens');
 const statsHistoryRouter = require('./routes/statsHistory');
 const apiV1Router = require('./routes/apiV1');
+const metricsRouter = require('./routes/metrics');
 const authRouter = require('./routes/auth');
 const auth = require('./lib/auth');
 const { checkForUpdate } = require('./lib/updateCheck');
@@ -47,6 +48,7 @@ const PUBLIC_PATHS = new Set(['/login.html', '/style.css', '/api/health', '/api/
 
 app.use('/api/auth', authRouter);
 app.use('/api/v1', apiV1Router); // own token-based auth (see requireToken in routes/apiV1.js) -- bypasses the session gate below entirely, same reason /api/auth does
+app.use('/metrics', metricsRouter); // conventional Prometheus scrape path (root, not under /api) -- own token auth, same reasoning
 app.use((req, res, next) => {
   if (PUBLIC_PATHS.has(req.path) || auth.isAuthenticated(req)) return next();
   if (req.path.startsWith('/api/') || req.path.startsWith('/ws/')) {

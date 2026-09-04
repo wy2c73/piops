@@ -87,4 +87,18 @@ function verifyToken(plaintext) {
   return match.id;
 }
 
-module.exports = { createToken, listTokens, revokeToken, verifyToken };
+// Express middleware: requires a valid Bearer token (see verifyToken
+// above). Shared by every route that authenticates this way -- the
+// token-based read API (routes/apiV1.js) and the Prometheus /metrics
+// endpoint (routes/metrics.js) -- so there's one place this check lives
+// rather than a copy per route file.
+function requireToken(req, res, next) {
+  const match = (req.headers.authorization || '').match(/^Bearer\s+(.+)$/i);
+  const tokenId = match ? verifyToken(match[1]) : null;
+  if (!tokenId) {
+    return res.status(401).json({ error: 'Missing or invalid API token. See API.md for how to create one in Settings -> Security.' });
+  }
+  next();
+}
+
+module.exports = { createToken, listTokens, revokeToken, verifyToken, requireToken };
